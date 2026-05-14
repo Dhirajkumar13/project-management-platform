@@ -279,3 +279,51 @@ SMTP_FROM="ProjectFlow <noreply@example.com>"
 ```
 
 > **Frontend**: The API base URL is hardcoded to `http://localhost:3001/api/v1` in `apps/web/src/lib/api.ts`. Change this for production deployment.
+
+---
+
+## Deployment
+
+### Recommended Options
+
+| Platform | Hosts | Free Tier |
+|----------|-------|-----------|
+| [**Vercel**](https://vercel.com) | Next.js frontend | ✅ Free forever |
+| [**Railway**](https://railway.app) | Backend + PostgreSQL + Redis | $5 credit/month |
+| [**Render**](https://render.com) | Backend + PostgreSQL | Free (spins down after inactivity) |
+| [**Supabase**](https://supabase.com) | PostgreSQL database | Free (500MB) |
+| [**Upstash**](https://upstash.com) | Redis | Free (10k requests/day) |
+
+### Recommended Free Stack
+
+```
+Vercel          → Next.js frontend (zero config, auto-deploys from GitHub)
+Railway         → Node.js API + PostgreSQL + Redis (one project, three services)
+```
+
+### Vercel (Frontend)
+
+1. Go to [vercel.com](https://vercel.com) → Import Git Repository → select this repo
+2. Set **Root Directory** to `apps/web`
+3. Add environment variable:
+   ```
+   NEXT_PUBLIC_API_URL=https://your-api.railway.app/api/v1
+   ```
+4. Deploy — Vercel auto-detects Next.js, no config needed
+
+### Railway (Backend + DB + Redis)
+
+1. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
+2. Add three services: **Node.js app** (root: `apps/api`), **PostgreSQL**, **Redis**
+3. Set environment variables from the table above (Railway injects `DATABASE_URL` and `REDIS_URL` automatically)
+4. After deploy, run:
+   ```bash
+   npx prisma migrate deploy
+   npx ts-node -r tsconfig-paths/register prisma/seed.ts
+   ```
+
+### Render (Alternative — fully free)
+
+1. New Web Service → connect repo → Root Directory: `apps/api` → Build: `npm install && npm run build` → Start: `node dist/index.js`
+2. Add a **PostgreSQL** database (free 90 days)
+3. Note: free tier services sleep after 15 min of inactivity (cold start ~30s)
