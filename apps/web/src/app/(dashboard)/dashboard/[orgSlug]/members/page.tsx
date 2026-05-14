@@ -10,6 +10,8 @@ import api from '@/lib/api'
 import { OrgMember, OrgRole } from '@/types'
 import { cn, ROLE_COLORS, formatDate } from '@/lib/utils'
 import { Plus, Trash2, Mail } from 'lucide-react'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { Spinner } from '@/components/ui/Spinner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,7 +28,7 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const qc = useQueryClient()
 
-  const { data: membersData, isLoading } = useQuery({
+  const { data: membersData, isLoading, isError, refetch } = useQuery({
     queryKey: ['members', currentOrg?.id],
     queryFn: () =>
       api.get(`/organizations/${currentOrg!.id}/members`).then((r) => r.data.data.items as OrgMember[]),
@@ -90,7 +92,9 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
             </thead>
             <tbody className="divide-y divide-gray-50">
               {isLoading ? (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">Loading...</td></tr>
+                <tr><td colSpan={4} className="px-6 py-8 text-center"><Spinner /></td></tr>
+              ) : isError ? (
+                <tr><td colSpan={4}><ErrorState onRetry={refetch} /></td></tr>
               ) : membersData?.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">

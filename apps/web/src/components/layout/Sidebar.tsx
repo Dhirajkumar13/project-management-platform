@@ -10,12 +10,17 @@ import { Organization } from '@/types'
 import api from '@/lib/api'
 import {
   LayoutDashboard, FolderOpen, Users, Settings, LogOut,
-  ChevronDown, Plus, CheckSquare, Search, User
+  ChevronDown, Plus, CheckSquare, Search, User, X
 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout: logoutStore } = useAuthStore()
@@ -49,8 +54,18 @@ export function Sidebar() {
   }
 
   return (
-    <div className="w-64 bg-slate-900 flex flex-col h-screen flex-shrink-0">
+    <div className={cn(
+      'w-64 bg-slate-900 flex flex-col h-screen flex-shrink-0 transition-transform duration-200',
+      'fixed inset-y-0 left-0 z-30 lg:static lg:translate-x-0',
+      isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+    )}>
       <div className="p-4 border-b border-slate-800">
+        <div className="flex items-center justify-between lg:hidden mb-2">
+          <span className="text-white text-sm font-semibold">ProjectFlow</span>
+          <button onClick={onClose} aria-label="Close navigation" className="text-slate-400 hover:text-white p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
         <button
           onClick={() => setShowOrgPicker(!showOrgPicker)}
           className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition-colors group"
@@ -99,6 +114,7 @@ export function Sidebar() {
           <Link
             key={href}
             href={href}
+            onClick={onClose}
             className={cn(
               'sidebar-link',
               pathname === href || pathname.startsWith(href + '/') ? 'active' : ''

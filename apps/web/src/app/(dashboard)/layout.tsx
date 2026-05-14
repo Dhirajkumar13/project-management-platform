@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -13,6 +13,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, accessToken } = useAuthStore()
   const router = useRouter()
   const addNotification = useNotificationStore((s) => s.addNotification)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -47,8 +48,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         Skip to main content
       </a>
-      <Sidebar />
-      <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col overflow-hidden focus:outline-none">
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col overflow-hidden focus:outline-none min-w-0">
+        {/* Mobile header bar */}
+        <div className="lg:hidden flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 flex-shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open navigation menu"
+            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <span className="font-semibold text-gray-900 text-sm">ProjectFlow</span>
+        </div>
         {children}
       </main>
     </div>

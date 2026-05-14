@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Spinner } from '@/components/ui/Spinner'
+import { ErrorState } from '@/components/ui/ErrorState'
 import api from '@/lib/api'
 import { Project, ProjectStatus } from '@/types'
 import { formatDate, STATUS_COLORS, cn } from '@/lib/utils'
@@ -81,7 +82,7 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const qc = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['projects', currentOrg?.id, statusFilter],
     queryFn: () =>
       api.get(`/organizations/${currentOrg!.id}/projects`, {
@@ -129,6 +130,8 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
 
         {isLoading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
+        ) : isError ? (
+          <ErrorState onRetry={refetch} />
         ) : data?.length === 0 ? (
           <div className="text-center py-16">
             <FolderOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />

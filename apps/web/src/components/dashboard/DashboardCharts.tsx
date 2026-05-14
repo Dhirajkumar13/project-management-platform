@@ -25,7 +25,7 @@ export function DashboardCharts({ data }: Props) {
   }))
 
   return (
-    <div className="grid grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
         <h3 className="font-semibold text-gray-900 mb-4">Tasks by Status</h3>
         {pieData.length > 0 ? (

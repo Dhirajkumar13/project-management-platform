@@ -4,6 +4,7 @@ import { useOrgStore } from '@/store/org.store'
 import { Header } from '@/components/layout/Header'
 import { Avatar } from '@/components/ui/Avatar'
 import { Spinner } from '@/components/ui/Spinner'
+import { ErrorState } from '@/components/ui/ErrorState'
 import api from '@/lib/api'
 import { Project, Task, ProjectMember, TaskStatus } from '@/types'
 import { cn, STATUS_COLORS, STATUS_LABELS, formatDate, formatRelativeTime } from '@/lib/utils'
@@ -22,7 +23,7 @@ export default function ProjectDetailPage({
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const orgId = currentOrg?.id
 
-  const { data: project, isLoading: projLoading } = useQuery({
+  const { data: project, isLoading: projLoading, isError: projError, refetch } = useQuery({
     queryKey: ['project', orgId, params.projectId],
     queryFn: () =>
       api.get(`/organizations/${orgId}/projects/${params.projectId}`)
@@ -46,9 +47,9 @@ export default function ProjectDetailPage({
     enabled: !!orgId,
   })
 
-  if (projLoading || !project) {
-    return <div className="flex-1 flex items-center justify-center"><Spinner /></div>
-  }
+  if (projLoading) return <div className="flex-1 flex items-center justify-center"><Spinner /></div>
+  if (projError) return <div className="flex-1"><Header title="Project" /><ErrorState onRetry={refetch} /></div>
+  if (!project) return null
 
   const stats = project.stats ?? { totalTasks: 0, completedTasks: 0, completionPercentage: 0, overdueTasks: 0 }
 

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useOrgStore } from '@/store/org.store'
 import { Header } from '@/components/layout/Header'
 import { Spinner } from '@/components/ui/Spinner'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Avatar } from '@/components/ui/Avatar'
 import api from '@/lib/api'
 import { DashboardStats } from '@/types'
@@ -26,20 +27,16 @@ const DashboardCharts = dynamic(
 export default function OrgDashboardPage({ params }: { params: { orgSlug: string } }) {
   const currentOrg = useOrgStore((s) => s.currentOrg)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard', currentOrg?.id],
     queryFn: () =>
       api.get(`/dashboard/${currentOrg!.id}`).then((r) => r.data.data as DashboardStats),
     enabled: !!currentOrg?.id,
   })
 
-  if (isLoading || !data) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <Spinner />
-      </div>
-    )
-  }
+  if (isLoading) return <div className="flex-1 flex items-center justify-center"><Spinner /></div>
+  if (isError) return <div className="flex-1"><Header title="Dashboard" /><ErrorState onRetry={refetch} /></div>
+  if (!data) return null
 
   const statCards = [
     { label: 'Total Projects', value: data.totalProjects, icon: FolderOpen, color: 'text-blue-600 bg-blue-50' },
@@ -52,7 +49,7 @@ export default function OrgDashboardPage({ params }: { params: { orgSlug: string
     <div className="flex-1 overflow-y-auto">
       <Header title={`${currentOrg?.name} Dashboard`} />
       <div className="p-6 space-y-6">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((card) => (
             <div key={card.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-3">

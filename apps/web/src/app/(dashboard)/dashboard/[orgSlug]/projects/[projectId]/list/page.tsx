@@ -5,6 +5,7 @@ import { useOrgStore } from '@/store/org.store'
 import { Header } from '@/components/layout/Header'
 import { Avatar } from '@/components/ui/Avatar'
 import { Spinner } from '@/components/ui/Spinner'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Button } from '@/components/ui/Button'
 import api from '@/lib/api'
 import { Task, TaskStatus, Priority } from '@/types'
@@ -29,7 +30,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
   const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('')
   const [priorityFilter, setPriorityFilter] = useState<Priority | ''>('')
 
-  const { data: tasks, isLoading } = useQuery({
+  const { data: tasks, isLoading, isError, refetch } = useQuery({
     queryKey: ['tasks-list', currentOrg?.id, params.projectId, statusFilter, priorityFilter],
     queryFn: () =>
       api.get(`/organizations/${currentOrg!.id}/projects/${params.projectId}/tasks`, {
@@ -165,6 +166,8 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
         {/* Table */}
         {isLoading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
+        ) : isError ? (
+          <ErrorState onRetry={refetch} />
         ) : (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <table className="w-full">

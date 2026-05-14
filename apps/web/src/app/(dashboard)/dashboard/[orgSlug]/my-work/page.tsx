@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
+import { ErrorState } from '@/components/ui/ErrorState'
 import api from '@/lib/api'
 import { Task, TaskStatus } from '@/types'
 import { cn, STATUS_COLORS, STATUS_LABELS, PRIORITY_COLORS, PRIORITY_DOTS, formatDate, isOverdue } from '@/lib/utils'
@@ -31,7 +32,7 @@ export default function MyWorkPage({ params }: { params: { orgSlug: string } }) 
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const { user } = useAuthStore()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['my-tasks', currentOrg?.id, statusFilter],
     queryFn: () =>
       api.get('/my-tasks', {
@@ -80,6 +81,8 @@ export default function MyWorkPage({ params }: { params: { orgSlug: string } }) 
 
         {isLoading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
+        ) : isError ? (
+          <ErrorState onRetry={refetch} />
         ) : data?.length === 0 ? (
           <div className="text-center py-16">
             <CheckSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />

@@ -23,6 +23,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { TaskDetailModal } from '@/components/modals/TaskDetailModal'
+import { ErrorState } from '@/components/ui/ErrorState'
 
 const COLUMNS: TaskStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE']
 const COLUMN_COLORS: Record<TaskStatus, string> = {
@@ -152,7 +153,7 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  const { data: board, isLoading } = useQuery({
+  const { data: board, isLoading, isError, refetch } = useQuery({
     queryKey: ['kanban', projectId],
     queryFn: () =>
       api.get(`/organizations/${orgId}/projects/${projectId}/tasks/kanban`)
@@ -232,13 +233,9 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
     moveMutation.mutate({ taskId: active.id as string, status: destStatus, position: newPosition })
   }, [board, projectId, qc, moveMutation])
 
-  if (isLoading || !board) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="animate-spin h-6 w-6 border-2 border-indigo-600 rounded-full border-t-transparent" />
-      </div>
-    )
-  }
+  if (isLoading) return <div className="flex-1 flex items-center justify-center"><div className="animate-spin h-6 w-6 border-2 border-indigo-600 rounded-full border-t-transparent" /></div>
+  if (isError) return <div className="flex-1"><Header title="Kanban Board" /><ErrorState onRetry={refetch} /></div>
+  if (!board) return null
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
