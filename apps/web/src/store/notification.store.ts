@@ -9,6 +9,7 @@ interface NotificationState {
   addNotification: (notification: Notification) => void
   markRead: (id: string) => void
   markAllRead: () => void
+  clearNotifications: () => void
   setUnreadCount: (count: number) => void
 }
 
@@ -31,5 +32,6 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       notifications: state.notifications.map((n) => ({ ...n, read: true })),
       unreadCount: 0,
     })),
+  clearNotifications: () => set({ notifications: [], unreadCount: 0 }),
   setUnreadCount: (unreadCount) => set({ unreadCount }),
 }))

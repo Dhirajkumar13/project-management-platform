@@ -315,4 +315,27 @@ router.get('/:projectId/labels', projectController.getLabels)
 router.post('/:projectId/labels', requireOrgRole('MEMBER'), validate(createLabelSchema), projectController.createLabel)
 router.delete('/:projectId/labels/:labelId', requireOrgRole('MEMBER'), projectController.deleteLabel)
 
+/**
+ * @swagger
+ * /organizations/{orgId}/projects/{projectId}/burndown:
+ *   get:
+ *     summary: Get burndown chart data for a project
+ *     tags: [Projects]
+ *     parameters:
+ *       - in: path
+ *         name: orgId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Array of daily remaining/ideal task counts
+ */
+router.get('/:projectId/burndown', projectController.getBurndown)
+
 export default router

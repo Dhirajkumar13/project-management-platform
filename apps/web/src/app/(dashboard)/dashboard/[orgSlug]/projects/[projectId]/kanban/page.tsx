@@ -1,9 +1,9 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext, DragOverlay, DragEndEvent, DragStartEvent,
-  PointerSensor, KeyboardSensor, useSensor, useSensors, closestCorners
+  PointerSensor, KeyboardSensor, useSensor, useSensors, closestCorners, useDroppable
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -13,11 +13,11 @@ import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import api from '@/lib/api'
-import { Task, TaskStatus, Priority, KanbanBoard, Label } from '@/types'
+import { Task, TaskStatus, Priority, KanbanBoard, Label, ProjectMember } from '@/types'
 import {
   cn, PRIORITY_DOTS, STATUS_LABELS, formatDate, isOverdue
 } from '@/lib/utils'
-import { Plus, MessageSquare, Paperclip, Calendar, ChevronRight } from 'lucide-react'
+import { Plus, MessageSquare, Calendar, SlidersHorizontal, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -109,9 +109,11 @@ function Column({
   status: TaskStatus; tasks: Task[]; orgId: string; projectId: string
   onTaskClick: (task: Task) => void; onAddTask: (status: TaskStatus) => void
 }) {
+  const { setNodeRef, isOver } = useDroppable({ id: status })
+
   return (
     <div className="flex-shrink-0 w-72">
-      <div className={cn('bg-gray-50 rounded-xl border-t-4 flex flex-col max-h-full', COLUMN_COLORS[status])}>
+      <div ref={setNodeRef} className={cn('bg-gray-50 rounded-xl border-t-4 flex flex-col max-h-full transition-colors', COLUMN_COLORS[status], isOver && 'bg-indigo-50')}>
         <div className="flex items-center justify-between px-3 py-2.5">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-gray-700">{STATUS_LABELS[status]}</span>
@@ -146,6 +148,9 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [addingToColumn, setAddingToColumn] = useState<TaskStatus | null>(null)
+  const [filterPriority, setFilterPriority] = useState<Priority | ''>('')
+  const [filterAssignee, setFilterAssignee] = useState('')
+  const [filterLabel, setFilterLabel] = useState('')
   const qc = useQueryClient()
 
   const sensors = useSensors(
@@ -160,6 +165,40 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
         .then((r) => r.data.data as KanbanBoard),
     enabled: !!orgId,
   })
+
+  const { data: members } = useQuery({
+    queryKey: ['project-members', orgId, projectId],
+    queryFn: () =>
+      api.get(`/organizations/${orgId}/projects/${projectId}/members`)
+        .then((r) => r.data.data as ProjectMember[]),
+    enabled: !!orgId,
+  })
+
+  const { data: labels } = useQuery({
+    queryKey: ['project-labels', orgId, projectId],
+    queryFn: () =>
+      api.get(`/organizations/${orgId}/projects/${projectId}/labels`)
+        .then((r) => r.data.data as Label[]),
+    enabled: !!orgId,
+  })
+
+  const filteredBoard = useMemo((): KanbanBoard | undefined => {
+    if (!board) return undefined
+    const hasFilter = filterPriority || filterAssignee || filterLabel
+    if (!hasFilter) return board
+    const filter = (tasks: Task[]) => tasks.filter((task) => {
+      if (filterPriority && task.priority !== filterPriority) return false
+      if (filterAssignee && !task.assignees?.some((a) => a.userId === filterAssignee)) return false
+      if (filterLabel && !task.labels?.some((l) => l.labelId === filterLabel)) return false
+      return true
+    })
+    return Object.fromEntries(COLUMNS.map((s) => [s, filter(board[s] ?? [])])) as unknown as KanbanBoard
+  }, [board, filterPriority, filterAssignee, filterLabel])
+
+  const activeBoard = filteredBoard ?? board
+
+  const hasActiveFilter = !!(filterPriority || filterAssignee || filterLabel)
+  const clearFilters = () => { setFilterPriority(''); setFilterAssignee(''); setFilterLabel('') }
 
   const moveMutation = useMutation({
     mutationFn: ({ taskId, status, position }: { taskId: string; status: TaskStatus; position: number }) =>
@@ -235,11 +274,55 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
 
   if (isLoading) return <div className="flex-1 flex items-center justify-center"><div className="animate-spin h-6 w-6 border-2 border-indigo-600 rounded-full border-t-transparent" /></div>
   if (isError) return <div className="flex-1"><Header title="Kanban Board" /><ErrorState onRetry={refetch} /></div>
-  if (!board) return null
+  if (!board || !activeBoard) return null
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Header title="Kanban Board" />
+
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 bg-white flex-shrink-0 flex-wrap">
+        <SlidersHorizontal className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <select
+          value={filterPriority}
+          onChange={(e) => setFilterPriority(e.target.value as Priority | '')}
+          className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">All Priorities</option>
+          {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as Priority[]).map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+        <select
+          value={filterAssignee}
+          onChange={(e) => setFilterAssignee(e.target.value)}
+          className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">All Assignees</option>
+          {members?.map((m) => (
+            <option key={m.userId} value={m.userId}>{m.user.name}</option>
+          ))}
+        </select>
+        <select
+          value={filterLabel}
+          onChange={(e) => setFilterLabel(e.target.value)}
+          className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">All Labels</option>
+          {labels?.map((l) => (
+            <option key={l.id} value={l.id}>{l.name}</option>
+          ))}
+        </select>
+        {hasActiveFilter && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <X className="w-3.5 h-3.5" /> Clear filters
+          </button>
+        )}
+      </div>
+
       <div className="flex-1 overflow-x-auto p-6">
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex gap-4 h-full min-h-0">
@@ -247,7 +330,7 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
               <Column
                 key={status}
                 status={status}
-                tasks={board[status] ?? []}
+                tasks={activeBoard[status] ?? []}
                 orgId={orgId}
                 projectId={projectId}
                 onTaskClick={setSelectedTask}

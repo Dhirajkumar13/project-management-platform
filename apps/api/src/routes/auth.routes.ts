@@ -1,8 +1,9 @@
 import { Router } from 'express'
-import { authController, registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, updateProfileSchema } from '@/controllers/auth.controller'
+import { authController, avatarUpload, registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, updateProfileSchema } from '@/controllers/auth.controller'
 import { authenticate } from '@/middleware/auth'
 import { validate } from '@/middleware/validate'
 import { authLimiter } from '@/middleware/rateLimiter'
+import { uploadLimiter } from '@/middleware/rateLimiter'
 
 const router = Router()
 
@@ -48,5 +49,29 @@ router.post('/reset-password', validate(resetPasswordSchema), authController.res
 router.get('/me', authenticate, authController.getMe)
 router.patch('/profile', authenticate, validate(updateProfileSchema), authController.updateProfile)
 router.patch('/profile/password', authenticate, authController.changePassword)
+
+/**
+ * @swagger
+ * /auth/profile/avatar:
+ *   post:
+ *     summary: Upload profile avatar image
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar updated, returns updated user
+ */
+router.post('/profile/avatar', authenticate, uploadLimiter, avatarUpload.single('avatar'), authController.uploadAvatar)
 
 export default router

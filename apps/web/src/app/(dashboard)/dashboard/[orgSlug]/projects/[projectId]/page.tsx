@@ -8,8 +8,8 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import api from '@/lib/api'
 import { Project, Task, ProjectMember, TaskStatus } from '@/types'
 import { cn, STATUS_COLORS, STATUS_LABELS, formatDate, formatRelativeTime } from '@/lib/utils'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, ArrowRight, List } from 'lucide-react'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
+import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, ArrowRight, List, TrendingDown } from 'lucide-react'
 import Link from 'next/link'
 
 const PIE_COLORS = ['#6b7280', '#3b82f6', '#6366f1', '#8b5cf6', '#22c55e']
@@ -44,6 +44,14 @@ export default function ProjectDetailPage({
     queryFn: () =>
       api.get(`/organizations/${orgId}/projects/${params.projectId}/members`)
         .then((r) => r.data.data as ProjectMember[]),
+    enabled: !!orgId,
+  })
+
+  const { data: burndownData } = useQuery({
+    queryKey: ['burndown', orgId, params.projectId],
+    queryFn: () =>
+      api.get(`/organizations/${orgId}/projects/${params.projectId}/burndown`)
+        .then((r) => r.data.data as { date: string; remaining: number; ideal: number }[]),
     enabled: !!orgId,
   })
 
@@ -181,6 +189,34 @@ export default function ProjectDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Burndown Chart */}
+        {burndownData && burndownData.length > 1 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingDown className="w-4 h-4 text-indigo-600" />
+              <h3 className="font-semibold text-gray-900">Burndown Chart</h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={burndownData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  tickFormatter={(v) => v.slice(5)}
+                />
+                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                  formatter={(value: number, name: string) => [value, name === 'remaining' ? 'Remaining' : 'Ideal']}
+                />
+                <Legend formatter={(v) => v === 'remaining' ? 'Actual remaining' : 'Ideal'} />
+                <Line type="monotone" dataKey="ideal" stroke="#e5e7eb" strokeDasharray="4 4" dot={false} strokeWidth={2} />
+                <Line type="monotone" dataKey="remaining" stroke="#6366f1" dot={false} strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
     </div>
   )

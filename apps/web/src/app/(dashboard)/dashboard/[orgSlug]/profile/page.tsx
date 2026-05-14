@@ -1,15 +1,16 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth.store'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { Camera } from 'lucide-react'
 
 const TIMEZONES = [
   'UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -51,8 +52,10 @@ export default function ProfilePage() {
   const [prefs, setPrefs] = useState<typeof DEFAULT_PREFS>(
     (user as any)?.notificationPrefs ?? DEFAULT_PREFS
   )
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
     values: { name: user?.name ?? '', timezone: user?.timezone ?? 'UTC', avatarUrl: user?.avatarUrl ?? '' },
   })
@@ -92,6 +95,28 @@ export default function ProfilePage() {
     profileMutation.mutate({ ...data, notificationPrefs: prefs })
   }
 
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+      const res = await api.post('/auth/profile/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const updatedUser = res.data.data
+      setAuth(updatedUser, useAuthStore.getState().accessToken ?? '')
+      setValue('avatarUrl', updatedUser.avatarUrl ?? '')
+      toast.success('Avatar uploaded!')
+    } catch {
+      toast.error('Failed to upload avatar')
+    } finally {
+      setAvatarUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -102,10 +127,37 @@ export default function ProfilePage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Information</h2>
           <div className="flex items-center gap-4 mb-6">
-            <Avatar name={user.name} avatarUrl={user.avatarUrl} size="lg" />
+            <div className="relative group">
+              <Avatar name={user.name} avatarUrl={user.avatarUrl} size="lg" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                aria-label="Upload avatar photo"
+              >
+                <Camera className="w-5 h-5 text-white" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFile}
+                aria-label="Avatar file input"
+              />
+            </div>
             <div>
               <p className="font-medium text-gray-900">{user.name}</p>
               <p className="text-sm text-gray-500">{user.email}</p>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="mt-1 text-xs text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+              >
+                {avatarUploading ? 'Uploading…' : 'Upload photo'}
+              </button>
             </div>
           </div>
           <form onSubmit={handleSubmit(onSaveProfile)} className="space-y-4">
@@ -115,13 +167,7 @@ export default function ProfilePage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Avatar URL</label>
-              <input {...register('avatarUrl')} placeholder="https://..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              {errors.avatarUrl && <p className="text-red-500 text-xs mt-1">{errors.avatarUrl.message}</p>}
-              <p className="text-xs text-gray-400 mt-1">Link to an image hosted publicly (e.g. Gravatar, GitHub avatar)</p>
-            </div>
+            <input type="hidden" {...register('avatarUrl')} />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
               <select {...register('timezone')}

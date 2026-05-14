@@ -10,7 +10,7 @@ import { Notification } from '@/types'
 
 export function Header({ title }: { title?: string }) {
   const [showNotifications, setShowNotifications] = useState(false)
-  const { unreadCount, notifications, markRead, markAllRead, setNotifications, setUnreadCount } = useNotificationStore()
+  const { unreadCount, notifications, markRead, markAllRead, clearNotifications, setNotifications, setUnreadCount } = useNotificationStore()
 
   useQuery({
     queryKey: ['notifications'],
@@ -29,6 +29,11 @@ export function Header({ title }: { title?: string }) {
   const handleMarkAllRead = async () => {
     await api.post('/notifications/read-all')
     markAllRead()
+  }
+
+  const handleClearAll = async () => {
+    await api.delete('/notifications')
+    clearNotifications()
   }
 
   const handleMarkRead = async (id: string) => {
@@ -61,11 +66,18 @@ export function Header({ title }: { title?: string }) {
             <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                 <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
-                {unreadCount > 0 && (
-                  <button onClick={handleMarkAllRead} className="text-xs text-indigo-600 hover:text-indigo-700">
-                    Mark all read
-                  </button>
-                )}
+                <div className="flex items-center gap-3">
+                  {unreadCount > 0 && (
+                    <button onClick={handleMarkAllRead} className="text-xs text-indigo-600 hover:text-indigo-700">
+                      Mark all read
+                    </button>
+                  )}
+                  {notifications.length > 0 && (
+                    <button onClick={handleClearAll} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                      Clear all
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (

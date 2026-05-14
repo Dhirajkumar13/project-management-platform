@@ -1,8 +1,29 @@
 import { Request, Response } from 'express'
 import { z } from 'zod'
+import multer from 'multer'
+import path from 'path'
 import { authService } from '@/services/auth.service'
 import { AuthenticatedRequest } from '@/types'
 import { successResponse } from '@/utils/response'
+import { AppError } from '@/middleware/error'
+import { env } from '@/config/env'
+
+const avatarStorage = multer.diskStorage({
+  destination: (_, __, cb) => cb(null, env.UPLOAD_DIR),
+  filename: (_, file, cb) => {
+    const ext = path.extname(file.originalname)
+    cb(null, `avatar-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`)
+  },
+})
+
+export const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true)
+    else cb(new Error('Only image files are allowed') as unknown as null, false)
+  },
+})
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -103,5 +124,13 @@ export const authController = {
   changePassword: async (req: AuthenticatedRequest, res: Response) => {
     await authService.changePassword(req.user!.id, req.body.currentPassword, req.body.newPassword)
     successResponse(res, null, 200, 'Password changed')
+  },
+
+  uploadAvatar: async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.file) throw new AppError('No file uploaded', 400)
+    const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
+    const user = await authService.updateProfile(req.user!.id, { avatarUrl })
+    const { password: _, ...safeUser } = user as Record<string, unknown> & { password: string }
+    successResponse(res, safeUser, 200, 'Avatar updated')
   },
 }

@@ -121,6 +121,21 @@ router.post('/read-all', async (req: AuthenticatedRequest, res) => {
 
 /**
  * @swagger
+ * /notifications:
+ *   delete:
+ *     summary: Delete all notifications for current user
+ *     tags: [Notifications]
+ *     responses:
+ *       200:
+ *         description: All notifications cleared
+ */
+router.delete('/', async (req: AuthenticatedRequest, res) => {
+  await prisma.notification.deleteMany({ where: { userId: req.user!.id } })
+  successResponse(res, null, 200, 'All notifications cleared')
+})
+
+/**
+ * @swagger
  * /notifications/{id}:
  *   delete:
  *     summary: Delete a notification
