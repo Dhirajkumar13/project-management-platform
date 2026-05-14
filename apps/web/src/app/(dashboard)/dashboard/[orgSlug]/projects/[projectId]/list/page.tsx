@@ -1,0 +1,263 @@
+'use client'
+import { useState, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useOrgStore } from '@/store/org.store'
+import { Header } from '@/components/layout/Header'
+import { Avatar } from '@/components/ui/Avatar'
+import { Spinner } from '@/components/ui/Spinner'
+import { Button } from '@/components/ui/Button'
+import api from '@/lib/api'
+import { Task, TaskStatus, Priority } from '@/types'
+import { cn, STATUS_COLORS, STATUS_LABELS, PRIORITY_COLORS, PRIORITY_DOTS, formatDate, isOverdue } from '@/lib/utils'
+import { Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown, LayoutGrid, SlidersHorizontal } from 'lucide-react'
+import Link from 'next/link'
+import toast from 'react-hot-toast'
+
+type SortField = 'title' | 'status' | 'priority' | 'dueDate' | 'createdAt'
+type SortDir = 'asc' | 'desc'
+
+const PRIORITY_ORDER: Record<Priority, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+const STATUS_ORDER: Record<TaskStatus, number> = { BACKLOG: 0, TODO: 1, IN_PROGRESS: 2, IN_REVIEW: 3, DONE: 4 }
+
+export default function TaskListPage({ params }: { params: { orgSlug: string; projectId: string } }) {
+  const currentOrg = useOrgStore((s) => s.currentOrg)
+  const qc = useQueryClient()
+
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [sortField, setSortField] = useState<SortField>('createdAt')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('')
+  const [priorityFilter, setPriorityFilter] = useState<Priority | ''>('')
+
+  const { data: tasks, isLoading } = useQuery({
+    queryKey: ['tasks-list', currentOrg?.id, params.projectId, statusFilter, priorityFilter],
+    queryFn: () =>
+      api.get(`/organizations/${currentOrg!.id}/projects/${params.projectId}/tasks`, {
+        params: { limit: 200, status: statusFilter || undefined, priority: priorityFilter || undefined },
+      }).then((r) => r.data.data.items as Task[]),
+    enabled: !!currentOrg?.id,
+  })
+
+  const sorted = useMemo(() => {
+    if (!tasks) return []
+    return [...tasks].sort((a, b) => {
+      let cmp = 0
+      if (sortField === 'title') cmp = a.title.localeCompare(b.title)
+      else if (sortField === 'status') cmp = STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
+      else if (sortField === 'priority') cmp = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+      else if (sortField === 'dueDate') {
+        const da = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
+        const db = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
+        cmp = da - db
+      } else cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [tasks, sortField, sortDir])
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSortField(field); setSortDir('asc') }
+  }
+
+  const allSelected = sorted.length > 0 && selected.size === sorted.length
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(sorted.map((t) => t.id)))
+  const toggleOne = (id: string) => {
+    const next = new Set(selected)
+    next.has(id) ? next.delete(id) : next.add(id)
+    setSelected(next)
+  }
+
+  const bulkDelete = useMutation({
+    mutationFn: () => api.post(`/organizations/${currentOrg!.id}/projects/${params.projectId}/tasks/bulk`, {
+      action: 'delete', taskIds: Array.from(selected),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks-list'] })
+      setSelected(new Set())
+      toast.success('Tasks deleted')
+    },
+    onError: () => toast.error('Failed to delete tasks'),
+  })
+
+  const bulkMove = (status: TaskStatus) => {
+    api.post(`/organizations/${currentOrg!.id}/projects/${params.projectId}/tasks/bulk`, {
+      action: 'move', taskIds: Array.from(selected), status,
+    }).then(() => {
+      qc.invalidateQueries({ queryKey: ['tasks-list'] })
+      setSelected(new Set())
+      toast.success(`Moved to ${STATUS_LABELS[status]}`)
+    }).catch(() => toast.error('Failed to move tasks'))
+  }
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-gray-300" />
+    return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
+  }
+
+  const exportCSV = () => {
+    const token = localStorage.getItem('auth-storage')
+    const parsed = token ? JSON.parse(token) : null
+    const accessToken = parsed?.state?.accessToken ?? ''
+    const url = `http://localhost:3001/api/v1/organizations/${currentOrg!.id}/projects/${params.projectId}/tasks/export`
+    fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then((r) => r.blob())
+      .then((blob) => {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `tasks-${params.projectId}.csv`
+        a.click()
+      })
+      .catch(() => toast.error('Export failed'))
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <Header title="Task List" />
+      <div className="p-6">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as TaskStatus | '')}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="">All Statuses</option>
+              {(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as TaskStatus[]).map((s) => (
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+            <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="">All Priorities</option>
+              {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as Priority[]).map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+
+            {selected.size > 0 && (
+              <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
+                <span className="text-sm text-gray-500">{selected.size} selected</span>
+                <select onChange={(e) => e.target.value && bulkMove(e.target.value as TaskStatus)}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="">Move to...</option>
+                  {(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as TaskStatus[]).map((s) => (
+                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                  ))}
+                </select>
+                <button onClick={() => { if (confirm(`Delete ${selected.size} tasks?`)) bulkDelete.mutate() }}
+                  className="flex items-center gap-1 px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg">
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+              <LayoutGrid className="w-4 h-4" /> Kanban
+            </Link>
+            <button onClick={exportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        {isLoading ? (
+          <div className="flex justify-center py-12"><Spinner /></div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="px-4 py-3 w-10">
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                  </th>
+                  <th className="px-4 py-3 text-left">
+                    <button onClick={() => toggleSort('title')} className="flex items-center gap-1 text-xs font-medium text-gray-500 uppercase tracking-wide hover:text-gray-700">
+                      Title <SortIcon field="title" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-left w-32">
+                    <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-gray-500 uppercase tracking-wide hover:text-gray-700">
+                      Status <SortIcon field="status" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-left w-28">
+                    <button onClick={() => toggleSort('priority')} className="flex items-center gap-1 text-xs font-medium text-gray-500 uppercase tracking-wide hover:text-gray-700">
+                      Priority <SortIcon field="priority" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-left w-36 text-xs font-medium text-gray-500 uppercase tracking-wide">Assignees</th>
+                  <th className="px-4 py-3 text-left w-28">
+                    <button onClick={() => toggleSort('dueDate')} className="flex items-center gap-1 text-xs font-medium text-gray-500 uppercase tracking-wide hover:text-gray-700">
+                      Due <SortIcon field="dueDate" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-center w-16 text-xs font-medium text-gray-500 uppercase tracking-wide">SP</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {sorted.length === 0 ? (
+                  <tr><td colSpan={7} className="py-12 text-center text-gray-400 text-sm">No tasks found</td></tr>
+                ) : sorted.map((task) => (
+                  <tr key={task.id}
+                    className={cn('hover:bg-gray-50 transition-colors', selected.has(task.id) && 'bg-indigo-50')}>
+                    <td className="px-4 py-3">
+                      <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggleOne(task.id)}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', PRIORITY_DOTS[task.priority])} />
+                        <span className="text-sm text-gray-900 truncate max-w-xs">{task.title}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', STATUS_COLORS[task.status])}>
+                        {STATUS_LABELS[task.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={cn('text-xs px-2 py-0.5 rounded-full border font-medium', PRIORITY_COLORS[task.priority])}>
+                        {task.priority}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex -space-x-1">
+                        {task.assignees?.slice(0, 3).map((a) => (
+                          <Avatar key={a.id} name={a.user.name} avatarUrl={a.user.avatarUrl} size="xs" className="ring-2 ring-white" />
+                        ))}
+                        {(task.assignees?.length ?? 0) > 3 && (
+                          <span className="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center ring-2 ring-white text-gray-600">
+                            +{task.assignees!.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {task.dueDate ? (
+                        <span className={cn('text-xs', isOverdue(task.dueDate) && task.status !== 'DONE' ? 'text-red-500 font-medium' : 'text-gray-500')}>
+                          {formatDate(task.dueDate)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="text-xs text-gray-500">{task.storyPoints ?? '—'}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!isLoading && sorted.length > 0 && (
+          <p className="text-xs text-gray-400 mt-2">{sorted.length} tasks</p>
+        )}
+      </div>
+    </div>
+  )
+}
