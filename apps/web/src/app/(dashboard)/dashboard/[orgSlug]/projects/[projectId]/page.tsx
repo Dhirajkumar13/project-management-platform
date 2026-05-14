@@ -1,6 +1,7 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
 import { useOrgStore } from '@/store/org.store'
+import { useProjectSocket } from '@/hooks/useProjectSocket'
 import { Header } from '@/components/layout/Header'
 import { Avatar } from '@/components/ui/Avatar'
 import { Spinner } from '@/components/ui/Spinner'
@@ -22,6 +23,8 @@ export default function ProjectDetailPage({
 }) {
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const orgId = currentOrg?.id
+
+  useProjectSocket(params.projectId, orgId ?? '')
 
   const { data: project, isLoading: projLoading, isError: projError, refetch } = useQuery({
     queryKey: ['project', orgId, params.projectId],

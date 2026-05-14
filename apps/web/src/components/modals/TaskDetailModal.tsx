@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTaskSocket } from '@/hooks/useTaskSocket'
 import { Task, TaskComment, TaskActivity, Subtask } from '@/types'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
@@ -30,6 +31,8 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(task.title)
   const qc = useQueryClient()
+
+  useTaskSocket(task.id)
 
   const { data: comments } = useQuery({
     queryKey: ['comments', task.id],

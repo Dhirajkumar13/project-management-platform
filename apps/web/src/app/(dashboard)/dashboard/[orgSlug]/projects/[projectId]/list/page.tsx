@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useOrgStore } from '@/store/org.store'
+import { useProjectSocket } from '@/hooks/useProjectSocket'
 import { Header } from '@/components/layout/Header'
 import { Avatar } from '@/components/ui/Avatar'
 import { Spinner } from '@/components/ui/Spinner'
@@ -23,6 +24,8 @@ const STATUS_ORDER: Record<TaskStatus, number> = { BACKLOG: 0, TODO: 1, IN_PROGR
 export default function TaskListPage({ params }: { params: { orgSlug: string; projectId: string } }) {
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const qc = useQueryClient()
+
+  useProjectSocket(params.projectId, currentOrg?.id ?? '')
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sortField, setSortField] = useState<SortField>('createdAt')

@@ -8,6 +8,7 @@ import {
 import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useOrgStore } from '@/store/org.store'
+import { useProjectSocket } from '@/hooks/useProjectSocket'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
@@ -144,6 +145,8 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const orgId = currentOrg?.id ?? ''
   const { projectId } = params
+
+  useProjectSocket(projectId, orgId)
 
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
