@@ -1,12 +1,21 @@
 import { Server, Socket } from 'socket.io'
+import { createAdapter } from '@socket.io/redis-adapter'
+import { createClient } from 'ioredis'
 import { verifyAccessToken } from '@/utils/jwt'
 import { prisma } from './database'
+import { env } from './env'
 import { logger } from './logger'
 
 let ioInstance: Server | null = null
 
 export const setupSocket = (io: Server) => {
   ioInstance = io
+
+  // Redis adapter — enables horizontal scaling across multiple Node instances
+  const pubClient = createClient(env.REDIS_URL)
+  const subClient = pubClient.duplicate()
+  io.adapter(createAdapter(pubClient, subClient))
+  logger.info('Socket.IO Redis adapter attached')
 
   io.use(async (socket: Socket, next) => {
     try {

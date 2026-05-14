@@ -4,6 +4,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import helmet from 'helmet'
 import cors from 'cors'
+import hpp from 'hpp'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import morgan from 'morgan'
@@ -16,6 +17,8 @@ import { swaggerSpec } from '@/config/swagger'
 import { setupSocket } from '@/config/socket'
 import { errorMiddleware } from '@/middleware/error'
 import { generalLimiter } from '@/middleware/rateLimiter'
+import { sanitizeBody } from '@/middleware/sanitize'
+import '@/config/queue'
 
 import authRoutes from '@/routes/auth.routes'
 import organizationRoutes from '@/routes/organization.routes'
@@ -38,9 +41,11 @@ const io = new Server(httpServer, {
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(cors({ origin: env.FRONTEND_URL, credentials: true }))
+app.use(hpp())
 app.use(compression())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use(sanitizeBody)
 app.use(cookieParser())
 app.use(morgan('dev'))
 app.use(generalLimiter)
