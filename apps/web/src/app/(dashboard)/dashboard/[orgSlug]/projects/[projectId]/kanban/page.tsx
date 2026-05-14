@@ -37,7 +37,9 @@ const COLUMN_COLORS: Record<TaskStatus, string> = {
 
 const createSchema = z.object({
   title: z.string().min(1, 'Title required'),
+  description: z.string().optional(),
   priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
+  dueDate: z.string().optional(),
 })
 type CreateForm = z.infer<typeof createSchema>
 
@@ -151,6 +153,7 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [addingToColumn, setAddingToColumn] = useState<TaskStatus | null>(null)
+  const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([])
   const [filterPriority, setFilterPriority] = useState<Priority | ''>('')
   const [filterAssignee, setFilterAssignee] = useState('')
   const [filterLabel, setFilterLabel] = useState('')
@@ -213,17 +216,18 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
     },
   })
 
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<CreateForm>({
+  const { register, handleSubmit, reset, formState: { isSubmitting, errors } } = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
     defaultValues: { priority: 'MEDIUM' },
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateForm & { status: TaskStatus }) =>
+    mutationFn: (data: CreateForm & { status: TaskStatus; assigneeIds: string[] }) =>
       api.post(`/organizations/${orgId}/projects/${projectId}/tasks`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['kanban', projectId] })
       setAddingToColumn(null)
+      setSelectedAssigneeIds([])
       reset()
       toast.success('Task created!')
     },
@@ -347,24 +351,79 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
         </DndContext>
       </div>
 
-      <Modal isOpen={!!addingToColumn} onClose={() => { setAddingToColumn(null); reset() }} title={`Add task to ${addingToColumn ? STATUS_LABELS[addingToColumn] : ''}`}>
-        <form onSubmit={handleSubmit((d) => createMutation.mutate({ ...d, status: addingToColumn! }))} className="p-6 space-y-4">
+      <Modal isOpen={!!addingToColumn} onClose={() => { setAddingToColumn(null); setSelectedAssigneeIds([]); reset() }} title={`Add task to ${addingToColumn ? STATUS_LABELS[addingToColumn] : ''}`}>
+        <form
+          onSubmit={handleSubmit((d) => createMutation.mutate({
+            ...d,
+            status: addingToColumn!,
+            assigneeIds: selectedAssigneeIds,
+            dueDate: d.dueDate || undefined,
+            description: d.description || undefined,
+          }))}
+          className="p-6 space-y-4"
+        >
+          {/* Title */}
           <div>
             <label htmlFor="task-title" className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
             <input id="task-title" {...register('title')} placeholder="Task title" autoFocus
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
           </div>
+
+          {/* Description */}
           <div>
-            <label htmlFor="task-priority" className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-            <select id="task-priority" {...register('priority')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="CRITICAL">Critical</option>
-            </select>
+            <label htmlFor="task-desc" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea id="task-desc" {...register('description')} rows={3} placeholder="Optional description…"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
           </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => { setAddingToColumn(null); reset() }}>Cancel</Button>
+
+          {/* Priority + Due Date side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="task-priority" className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+              <select id="task-priority" {...register('priority')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="task-due" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+              <input id="task-due" type="date" {...register('dueDate')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+          </div>
+
+          {/* Assignees */}
+          {members && members.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
+              <div className="space-y-2 max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                {members.map((m) => (
+                  <label key={m.userId} className="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5">
+                    <input
+                      type="checkbox"
+                      checked={selectedAssigneeIds.includes(m.userId)}
+                      onChange={(e) =>
+                        setSelectedAssigneeIds((prev) =>
+                          e.target.checked ? [...prev, m.userId] : prev.filter((id) => id !== m.userId)
+                        )
+                      }
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <Avatar name={m.user.name} avatarUrl={m.user.avatarUrl} size="xs" />
+                    <span className="text-sm text-gray-700">{m.user.name}</span>
+                    <span className="ml-auto text-xs text-gray-400">{m.role}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-1">
+            <Button variant="outline" type="button" onClick={() => { setAddingToColumn(null); setSelectedAssigneeIds([]); reset() }}>Cancel</Button>
             <Button type="submit" loading={isSubmitting || createMutation.isPending}>Create Task</Button>
           </div>
         </form>
