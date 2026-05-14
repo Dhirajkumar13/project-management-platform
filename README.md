@@ -100,6 +100,8 @@ Controllers → Services → Repositories → Prisma (PostgreSQL)
 
 ## Database Schema
 
+> Full ERD diagram and schema documentation: **[SCHEMA.md](./SCHEMA.md)**
+
 ### Core entities
 
 ```
