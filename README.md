@@ -72,12 +72,18 @@ A production-grade, multi-tenant SaaS project management platform — built with
 
 ### 1. Start infrastructure
 
+**First time only:**
 ```bash
 docker run -d --name project-postgres \
   -e POSTGRES_USER=project_user \
   -e POSTGRES_PASSWORD=project_pass \
   -e POSTGRES_DB=project_mgmt \
   -p 5433:5432 postgres:14-alpine
+```
+
+**Subsequent starts:**
+```bash
+docker start project-postgres
 ```
 
 ### 2. Backend
