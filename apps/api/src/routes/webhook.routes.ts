@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { authenticate } from '@/middleware/auth'
-import { orgAccess } from '@/middleware/orgAccess'
+import { orgAccess, requireOrgRole } from '@/middleware/orgAccess'
 import { validate } from '@/middleware/validate'
 import { successResponse } from '@/utils/response'
 import { webhookService, WEBHOOK_EVENTS } from '@/services/webhook.service'
@@ -123,12 +123,12 @@ const updateSchema = z.object({
  *       422:
  *         description: Validation failed
  */
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', requireOrgRole('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   const webhooks = await webhookService.list(req.orgMember!.organizationId)
   successResponse(res, webhooks)
 })
 
-router.post('/', validate(createSchema), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', requireOrgRole('ADMIN'), validate(createSchema), async (req: AuthenticatedRequest, res: Response) => {
   const webhook = await webhookService.create(req.orgMember!.organizationId, req.body)
   successResponse(res, webhook, 201, 'Webhook created')
 })
@@ -289,12 +289,12 @@ router.get('/events', (_req, res: Response) => {
  *       404:
  *         description: Webhook not found
  */
-router.patch('/:id', validate(updateSchema), async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/:id', requireOrgRole('ADMIN'), validate(updateSchema), async (req: AuthenticatedRequest, res: Response) => {
   const webhook = await webhookService.update(req.params.id, req.orgMember!.organizationId, req.body)
   successResponse(res, webhook)
 })
 
-router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', requireOrgRole('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   await webhookService.delete(req.params.id, req.orgMember!.organizationId)
   successResponse(res, null, 200, 'Webhook deleted')
 })
@@ -342,7 +342,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
  *       404:
  *         description: Webhook not found
  */
-router.post('/:id/rotate-secret', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/rotate-secret', requireOrgRole('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   const webhook = await webhookService.rotateSecret(req.params.id, req.orgMember!.organizationId)
   successResponse(res, webhook)
 })
@@ -456,7 +456,7 @@ router.post('/:id/rotate-secret', async (req: AuthenticatedRequest, res: Respons
  *           type: string
  *           format: date-time
  */
-router.get('/:id/deliveries', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id/deliveries', requireOrgRole('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   const deliveries = await webhookService.listDeliveries(req.params.id, req.orgMember!.organizationId)
   successResponse(res, deliveries)
 })
