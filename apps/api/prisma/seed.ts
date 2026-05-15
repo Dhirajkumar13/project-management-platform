@@ -6,65 +6,54 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database...')
 
+  // Clear existing data so seed is idempotent without upsert
+  await prisma.taskActivity.deleteMany()
+  await prisma.taskComment.deleteMany()
+  await prisma.taskLabel.deleteMany()
+  await prisma.taskAssignee.deleteMany()
+  await prisma.subtask.deleteMany()
+  await prisma.taskAttachment.deleteMany()
+  await prisma.task.deleteMany()
+  await prisma.label.deleteMany()
+  await prisma.projectMember.deleteMany()
+  await prisma.project.deleteMany()
+  await prisma.organizationMember.deleteMany()
+  await prisma.organization.deleteMany()
+  await prisma.refreshToken.deleteMany()
+  await prisma.passwordReset.deleteMany()
+  await prisma.notification.deleteMany()
+  await prisma.auditLog.deleteMany()
+  await prisma.webhookDelivery.deleteMany()
+  await prisma.webhook.deleteMany()
+  await prisma.user.deleteMany()
+
   const password = await bcrypt.hash('password123', 12)
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@demo.com' },
-    update: {},
-    create: { email: 'admin@demo.com', name: 'Admin User', password, timezone: 'UTC' },
+  const admin = await prisma.user.create({
+    data: { email: 'admin@demo.com', name: 'Admin User', password, timezone: 'UTC' },
+  })
+  const manager = await prisma.user.create({
+    data: { email: 'manager@demo.com', name: 'Mike Manager', password, timezone: 'UTC' },
+  })
+  const member = await prisma.user.create({
+    data: { email: 'member@demo.com', name: 'Jane Member', password, timezone: 'UTC' },
+  })
+  const viewer = await prisma.user.create({
+    data: { email: 'viewer@demo.com', name: 'Bob Viewer', password, timezone: 'UTC' },
   })
 
-  const member = await prisma.user.upsert({
-    where: { email: 'member@demo.com' },
-    update: {},
-    create: { email: 'member@demo.com', name: 'Jane Member', password, timezone: 'UTC' },
-  })
-
-  const manager = await prisma.user.upsert({
-    where: { email: 'manager@demo.com' },
-    update: {},
-    create: { email: 'manager@demo.com', name: 'Mike Manager', password, timezone: 'UTC' },
-  })
-
-  const viewer = await prisma.user.upsert({
-    where: { email: 'viewer@demo.com' },
-    update: {},
-    create: { email: 'viewer@demo.com', name: 'Bob Viewer', password, timezone: 'UTC' },
-  })
-
-  const org = await prisma.organization.upsert({
-    where: { slug: 'demo-org' },
-    update: {},
-    create: {
+  const org = await prisma.organization.create({
+    data: {
       name: 'Demo Organization',
       slug: 'demo-org',
       billingInfo: { plan: 'Pro', seats: 10 },
     },
   })
 
-  await prisma.organizationMember.upsert({
-    where: { organizationId_userId: { organizationId: org.id, userId: admin.id } },
-    update: {},
-    create: { organizationId: org.id, userId: admin.id, role: 'OWNER' },
-  })
-
-  await prisma.organizationMember.upsert({
-    where: { organizationId_userId: { organizationId: org.id, userId: member.id } },
-    update: {},
-    create: { organizationId: org.id, userId: member.id, role: 'MEMBER' },
-  })
-
-  await prisma.organizationMember.upsert({
-    where: { organizationId_userId: { organizationId: org.id, userId: manager.id } },
-    update: {},
-    create: { organizationId: org.id, userId: manager.id, role: 'MANAGER' },
-  })
-
-  await prisma.organizationMember.upsert({
-    where: { organizationId_userId: { organizationId: org.id, userId: viewer.id } },
-    update: {},
-    create: { organizationId: org.id, userId: viewer.id, role: 'VIEWER' },
-  })
+  await prisma.organizationMember.create({ data: { organizationId: org.id, userId: admin.id, role: 'OWNER' } })
+  await prisma.organizationMember.create({ data: { organizationId: org.id, userId: manager.id, role: 'MANAGER' } })
+  await prisma.organizationMember.create({ data: { organizationId: org.id, userId: member.id, role: 'MEMBER' } })
+  await prisma.organizationMember.create({ data: { organizationId: org.id, userId: viewer.id, role: 'VIEWER' } })
 
   const project1 = await prisma.project.create({
     data: {
@@ -102,22 +91,13 @@ async function main() {
   })
 
   for (const p of [project1, project2, project3]) {
-    await prisma.projectMember.createMany({
-      data: [
-        { projectId: p.id, userId: admin.id, role: 'LEAD' },
-        { projectId: p.id, userId: manager.id, role: 'MEMBER' },
-        { projectId: p.id, userId: member.id, role: 'MEMBER' },
-      ],
-      skipDuplicates: true,
-    })
+    await prisma.projectMember.create({ data: { projectId: p.id, userId: admin.id, role: 'LEAD' } })
+    await prisma.projectMember.create({ data: { projectId: p.id, userId: manager.id, role: 'MEMBER' } })
+    await prisma.projectMember.create({ data: { projectId: p.id, userId: member.id, role: 'MEMBER' } })
   }
 
   const bugLabel = await prisma.label.create({ data: { projectId: project1.id, name: 'Bug', color: '#ef4444' } })
   const featureLabel = await prisma.label.create({ data: { projectId: project1.id, name: 'Feature', color: '#6366f1' } })
-  const uiLabel = await prisma.label.create({ data: { projectId: project1.id, name: 'UI', color: '#8b5cf6' } })
-
-  const statuses: TaskStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE']
-  const priorities: Priority[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
   const taskData = [
     { title: 'Design new homepage hero section', status: 'DONE' as TaskStatus, priority: 'HIGH' as Priority, position: 1000 },
@@ -150,29 +130,22 @@ async function main() {
       await prisma.taskLabel.create({ data: { taskId: task.id, labelId: Math.random() > 0.5 ? bugLabel.id : featureLabel.id } })
     }
 
-    await prisma.taskActivity.create({
-      data: { taskId: task.id, userId: admin.id, action: 'created task' },
-    })
+    await prisma.taskActivity.create({ data: { taskId: task.id, userId: admin.id, action: 'created task' } })
 
     if (td.status !== 'BACKLOG') {
       await prisma.taskComment.create({
-        data: {
-          taskId: task.id,
-          userId: member.id,
-          content: `Working on this task. Will update status soon.`,
-          mentions: [],
-        },
+        data: { taskId: task.id, userId: member.id, content: 'Working on this task. Will update status soon.', mentions: [] },
       })
     }
 
     if (td.status === 'DONE' || td.status === 'IN_REVIEW') {
-      await prisma.subtask.createMany({
-        data: [
-          { taskId: task.id, title: 'Research phase', completed: true, position: 0 },
-          { taskId: task.id, title: 'Implementation', completed: td.status === 'DONE', position: 1 },
-          { taskId: task.id, title: 'Code review', completed: false, position: 2 },
-        ],
-      })
+      for (const subtask of [
+        { title: 'Research phase', completed: true, position: 0 },
+        { title: 'Implementation', completed: td.status === 'DONE', position: 1 },
+        { title: 'Code review', completed: false, position: 2 },
+      ]) {
+        await prisma.subtask.create({ data: { taskId: task.id, ...subtask } })
+      }
     }
   }
 
