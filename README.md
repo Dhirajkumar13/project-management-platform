@@ -112,6 +112,7 @@ npm run dev
 | Email | Password | Role |
 |-------|----------|------|
 | admin@demo.com | password123 | OWNER |
+| manager@demo.com | password123 | MANAGER |
 | member@demo.com | password123 | MEMBER |
 | viewer@demo.com | password123 | VIEWER |
 

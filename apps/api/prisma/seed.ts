@@ -20,6 +20,12 @@ async function main() {
     create: { email: 'member@demo.com', name: 'Jane Member', password, timezone: 'UTC' },
   })
 
+  const manager = await prisma.user.upsert({
+    where: { email: 'manager@demo.com' },
+    update: {},
+    create: { email: 'manager@demo.com', name: 'Mike Manager', password, timezone: 'UTC' },
+  })
+
   const viewer = await prisma.user.upsert({
     where: { email: 'viewer@demo.com' },
     update: {},
@@ -46,6 +52,12 @@ async function main() {
     where: { organizationId_userId: { organizationId: org.id, userId: member.id } },
     update: {},
     create: { organizationId: org.id, userId: member.id, role: 'MEMBER' },
+  })
+
+  await prisma.organizationMember.upsert({
+    where: { organizationId_userId: { organizationId: org.id, userId: manager.id } },
+    update: {},
+    create: { organizationId: org.id, userId: manager.id, role: 'MANAGER' },
   })
 
   await prisma.organizationMember.upsert({
@@ -93,6 +105,7 @@ async function main() {
     await prisma.projectMember.createMany({
       data: [
         { projectId: p.id, userId: admin.id, role: 'LEAD' },
+        { projectId: p.id, userId: manager.id, role: 'MEMBER' },
         { projectId: p.id, userId: member.id, role: 'MEMBER' },
       ],
       skipDuplicates: true,
@@ -181,6 +194,7 @@ async function main() {
   console.log('✅ Seed complete!')
   console.log('Demo users:')
   console.log('  admin@demo.com / password123 (OWNER)')
+  console.log('  manager@demo.com / password123 (MANAGER)')
   console.log('  member@demo.com / password123 (MEMBER)')
   console.log('  viewer@demo.com / password123 (VIEWER)')
 }
