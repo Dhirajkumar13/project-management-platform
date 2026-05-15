@@ -38,12 +38,12 @@ function ProjectCard({ project, orgSlug }: { project: Project; orgSlug: string }
   const pct = project.stats?.completionPercentage ?? 0
   return (
     <Link href={`/dashboard/${orgSlug}/projects/${project.id}/kanban`}
-      className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-indigo-200 transition-all block">
+      className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500 transition-all block">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 truncate">{project.name}</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
           {project.description && (
-            <p className="text-gray-500 text-sm mt-1 line-clamp-2">{project.description}</p>
+            <p className="text-gray-500 dark:text-slate-400 text-sm mt-1 line-clamp-2">{project.description}</p>
           )}
         </div>
         <span className={cn('text-xs px-2 py-1 rounded-full font-medium ml-3 flex-shrink-0', PROJECT_STATUS_COLORS[project.status])}>
@@ -51,15 +51,15 @@ function ProjectCard({ project, orgSlug }: { project: Project; orgSlug: string }
         </span>
       </div>
       <div className="mb-3">
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400 mb-1">
           <span>Progress</span>
           <span>{pct}%</span>
         </div>
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
           <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
       </div>
-      <div className="flex items-center gap-4 text-xs text-gray-500">
+      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-slate-400">
         <span className="flex items-center gap-1">
           <BarChart2 className="w-3 h-3" />
           {project.stats?.totalTasks ?? project._count?.tasks ?? 0} tasks
@@ -126,7 +126,7 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search projects by name or description..."
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')}
@@ -142,7 +142,7 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
               <button key={s} onClick={() => setStatusFilter(s as ProjectStatus | '')}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                  statusFilter === s ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                  statusFilter === s ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
                 )}>
                 {s || 'All'}
               </button>
@@ -160,9 +160,9 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
           <ErrorState onRetry={refetch} />
         ) : data?.length === 0 ? (
           <div className="text-center py-16">
-            <FolderOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="font-semibold text-gray-700 mb-1">No projects yet</h3>
-            <p className="text-gray-400 text-sm mb-4">Create your first project to get started</p>
+            <FolderOpen className="w-12 h-12 text-gray-300 dark:text-slate-600 mx-auto mb-4" />
+            <h3 className="font-semibold text-gray-700 dark:text-slate-200 mb-1">No projects yet</h3>
+            <p className="text-gray-400 dark:text-slate-500 text-sm mb-4">Create your first project to get started</p>
             <Button onClick={() => setShowCreate(true)}><Plus className="w-4 h-4" />Create Project</Button>
           </div>
         ) : (
@@ -177,26 +177,26 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
       <Modal isOpen={showCreate} onClose={() => { setShowCreate(false); reset() }} title="Create Project">
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Name *</label>
             <input {...register('name')} placeholder="Project name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
             <textarea {...register('description')} rows={3} placeholder="What is this project about?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Start Date</label>
               <input {...register('startDate')} type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">End Date</label>
               <input {...register('endDate')} type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

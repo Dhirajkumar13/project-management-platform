@@ -17,8 +17,8 @@ const DashboardCharts = dynamic(
     ssr: false,
     loading: () => (
       <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 h-64 animate-pulse" />
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 h-64 animate-pulse" />
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 h-64 animate-pulse" />
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 h-64 animate-pulse" />
       </div>
     ),
   }
@@ -51,38 +51,38 @@ export default function OrgDashboardPage({ params }: { params: { orgSlug: string
       <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((card) => (
-            <div key={card.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div key={card.label} className="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-slate-700">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-gray-500 text-sm">{card.label}</span>
+                <span className="text-gray-500 dark:text-slate-400 text-sm">{card.label}</span>
                 <div className={`p-2 rounded-lg ${card.color}`}>
                   <card.icon className="w-4 h-4" />
                 </div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{card.value}</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{card.value}</p>
             </div>
           ))}
         </div>
 
         <DashboardCharts data={data} />
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Recent Activity</h3>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-50 dark:divide-slate-700/50">
             {data.recentActivity.length === 0 ? (
-              <div className="py-8 text-center text-gray-400 text-sm">No activity yet</div>
+              <div className="py-8 text-center text-gray-400 dark:text-slate-500 text-sm">No activity yet</div>
             ) : (
               data.recentActivity.map((activity) => (
                 <div key={activity.id} className="flex items-start gap-3 px-5 py-3">
                   <Avatar name={activity.user.name} avatarUrl={activity.user.avatarUrl} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-gray-700 dark:text-slate-300">
                       <span className="font-medium">{activity.user.name}</span>
                       {' '}{activity.action}
-                      {activity.task && <span className="text-indigo-600"> &quot;{activity.task.title}&quot;</span>}
+                      {activity.task && <span className="text-indigo-600 dark:text-indigo-400"> &quot;{activity.task.title}&quot;</span>}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{formatRelativeTime(activity.createdAt)}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{formatRelativeTime(activity.createdAt)}</p>
                   </div>
                 </div>
               ))

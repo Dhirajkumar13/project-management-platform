@@ -205,6 +205,20 @@ Full Swagger docs available at: **http://localhost:3001/api/docs**
 | DELETE | .../tasks/:taskId/subtasks/:subtaskId | Delete subtask |
 | GET | .../tasks/:taskId/activities | Activity log |
 
+### Webhooks
+
+> Base path: `/api/v1/organizations/:orgId/webhooks`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | .../webhooks | List webhooks for the organization |
+| GET | .../webhooks/events | List all supported event types |
+| POST | .../webhooks | Create webhook (returns secret once) |
+| PATCH | .../webhooks/:id | Update webhook (name, url, events, active) |
+| DELETE | .../webhooks/:id | Delete webhook |
+| POST | .../webhooks/:id/rotate-secret | Rotate HMAC signing secret |
+| GET | .../webhooks/:id/deliveries | List recent delivery attempts |
+
 ### Other
 | Method | Path | Description |
 |--------|------|-------------|
@@ -227,6 +241,7 @@ Full Swagger docs available at: **http://localhost:3001/api/docs**
 | `task:updated` | Task | Task field changed |
 | `task:moved` | `{taskId, status, position}` | Drag-drop |
 | `task:deleted` | `{taskId, projectId}` | Task deleted |
+| `tasks:bulk-updated` | `{projectId, taskIds}` | Bulk status/delete |
 | `comment:created` | Comment | New comment |
 | `notification:new` | Notification | New notification |
 | `user:online` | `{userId}` | User connects |
@@ -243,9 +258,79 @@ Full Swagger docs available at: **http://localhost:3001/api/docs**
 
 ---
 
-## Security
+## Bonus Features
 
-- Passwords hashed with bcrypt (12 rounds)
+The following capabilities were implemented beyond the core requirements:
+
+| Feature | Details |
+|---------|---------|
+| **Dark Mode** | System/light/dark preference via `theme.store` (Zustand persisted). Toggle in Sidebar. `dark:` Tailwind classes on all major pages. |
+| **Audit Trail** | Every org and project mutation is recorded in `AuditLog`. Paginated viewer in Settings (ADMIN+ only). |
+| **Webhook System** | Outbound HTTP webhooks with HMAC-SHA256 request signing, 11 event types, fire-and-forget delivery with 10s timeout, and a delivery log UI. |
+| **Performance Optimization** | `DashboardCharts` dynamically imported (code-split from initial bundle). TanStack Query tuned (`staleTime=30s`, `gcTime=5min`). App Router streaming skeletons (`loading.tsx`) on 4 dashboard routes for instant perceived load. |
+| **WCAG 2.1 AA Accessibility** | `Modal` has focus trap + `role="dialog"` + `aria-modal`. `SelectDropdown` rewritten with `createPortal` + `role="listbox"` / `role="option"` + keyboard navigation. `Avatar` has `role="img"` + `aria-label`. Skip navigation link in dashboard layout. `:focus-visible` ring in `globals.css`. |
+
+---
+
+## Webhook System
+
+### Overview
+
+Webhooks let external systems receive real-time HTTP POST notifications when events occur in ProjectFlow. Configure them in **Settings → Webhooks**.
+
+### Supported Events
+
+| Event | Fires when |
+|-------|-----------|
+| `project.created` | A new project is created |
+| `project.updated` | Project name, description, or status changes |
+| `project.deleted` | A project is soft-deleted |
+| `task.created` | A new task is created |
+| `task.updated` | Any task field changes |
+| `task.deleted` | A task is soft-deleted |
+| `task.assigned` | A user is added as an assignee |
+| `member.invited` | A user is invited to the organization |
+| `member.removed` | A member is removed from the organization |
+| `comment.created` | A new comment is posted on a task |
+| `webhook.test` | Manual test delivery from the UI |
+
+### Request Format
+
+Every delivery is an HTTP POST to your configured URL with these headers:
+
+```
+Content-Type: application/json
+X-ProjectFlow-Event: task.created
+X-ProjectFlow-Delivery: <uuid>
+X-ProjectFlow-Signature: sha256=<hex-digest>
+```
+
+### Verifying Signatures
+
+The `X-ProjectFlow-Signature` header contains an HMAC-SHA256 digest of the raw request body, signed with your webhook's secret (the `whsec_` value shown at creation or after rotation).
+
+```typescript
+import { createHmac } from 'crypto'
+
+function verifyWebhookSignature(
+  rawBody: string,
+  signature: string,
+  secret: string
+): boolean {
+  const expected = 'sha256=' + createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex')
+  // Use timingSafeEqual to prevent timing attacks
+  return expected.length === signature.length &&
+    require('crypto').timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+}
+```
+
+**Always verify the signature before processing a delivery.** Deliveries that fail (non-2xx response or timeout after 10s) are logged but not retried automatically — inspect them in Settings → Webhooks → Delivery Log.
+
+---
+
+## Security
 - JWT access tokens (15min) + refresh tokens (7d, HTTP-only cookie)
 - Rate limiting: 100 req/15min general, 10 req/15min for auth
 - Helmet security headers

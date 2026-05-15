@@ -111,11 +111,11 @@ export default function ProjectDetailPage({
       />
       <div className="p-6 space-y-6">
         {/* Header card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-xl font-bold text-gray-900">{project.name}</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
                 <button
                   onClick={() => {
                     setEditForm({
@@ -126,30 +126,30 @@ export default function ProjectDetailPage({
                     })
                     setShowEdit(true)
                   }}
-                  className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  className="p-1 text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                   title="Edit project"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
               </div>
-              {project.description && <p className="text-gray-500 text-sm">{project.description}</p>}
+              {project.description && <p className="text-gray-500 dark:text-slate-400 text-sm">{project.description}</p>}
               {(project.startDate || project.endDate) && (
-                <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-slate-500">
                   {project.startDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Start: {formatDate(project.startDate)}</span>}
                   {project.endDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> End: {formatDate(project.endDate)}</span>}
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 self-start">
-              <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white text-indigo-600 font-medium shadow-sm">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-700 rounded-lg p-1 self-start">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 font-medium shadow-sm">
                 <LayoutDashboard className="w-3.5 h-3.5" /> Overview
               </span>
               <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/list`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors">
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-600 transition-colors">
                 <List className="w-3.5 h-3.5" /> List
               </Link>
               <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors">
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-600 transition-colors">
                 <LayoutGrid className="w-3.5 h-3.5" /> Kanban
               </Link>
             </div>
@@ -158,10 +158,10 @@ export default function ProjectDetailPage({
           {/* Completion bar */}
           <div>
             <div className="flex justify-between text-sm mb-1">
-              <span className="text-gray-600 font-medium">Overall Progress</span>
-              <span className="text-gray-900 font-bold">{stats.completionPercentage}%</span>
+              <span className="text-gray-600 dark:text-slate-300 font-medium">Overall Progress</span>
+              <span className="text-gray-900 dark:text-white font-bold">{stats.completionPercentage}%</span>
             </div>
-            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-indigo-500 to-green-500 rounded-full transition-all"
                 style={{ width: `${stats.completionPercentage}%` }} />
             </div>
@@ -176,20 +176,20 @@ export default function ProjectDetailPage({
             { label: 'In Progress', value: inProgress, icon: ArrowRight, color: 'text-indigo-600 bg-indigo-50' },
             { label: 'Overdue', value: stats.overdueTasks, icon: AlertTriangle, color: 'text-red-600 bg-red-50' },
           ].map((c) => (
-            <div key={c.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div key={c.label} className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-500 text-xs">{c.label}</span>
+                <span className="text-gray-500 dark:text-slate-400 text-xs">{c.label}</span>
                 <div className={cn('p-1.5 rounded-lg', c.color)}><c.icon className="w-3.5 h-3.5" /></div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{c.value}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{c.value}</p>
             </div>
           ))}
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           {/* Status distribution */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h3 className="font-semibold text-gray-900 mb-4">Task Status Distribution</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-5">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Task Status Distribution</h3>
             {byStatus.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={180}>
@@ -206,36 +206,36 @@ export default function ProjectDetailPage({
                     <div key={s.status} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="text-gray-600">{s.name}</span>
+                        <span className="text-gray-600 dark:text-slate-300">{s.name}</span>
                       </div>
-                      <span className="text-gray-900 font-medium">{s.value}</span>
+                      <span className="text-gray-900 dark:text-white font-medium">{s.value}</span>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <div className="h-40 flex items-center justify-center text-gray-400 text-sm">No tasks yet</div>
+              <div className="h-40 flex items-center justify-center text-gray-400 dark:text-slate-500 text-sm">No tasks yet</div>
             )}
           </div>
 
           {/* Team */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Team Members</h3>
-              <span className="text-xs text-gray-400"><Users className="w-3.5 h-3.5 inline mr-1" />{members?.length ?? 0}</span>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Team Members</h3>
+              <span className="text-xs text-gray-400 dark:text-slate-500"><Users className="w-3.5 h-3.5 inline mr-1" />{members?.length ?? 0}</span>
             </div>
             <div className="space-y-3">
               {members?.map((member) => (
                 <div key={member.id} className="flex items-center gap-3">
                   <Avatar name={member.user.name} avatarUrl={member.user.avatarUrl} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{member.user.name}</p>
-                    <p className="text-xs text-gray-400">{member.role}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{member.user.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">{member.role}</p>
                   </div>
                 </div>
               ))}
               {(!members || members.length === 0) && (
-                <div className="text-sm text-gray-400 text-center py-4">No members yet</div>
+                <div className="text-sm text-gray-400 dark:text-slate-500 text-center py-4">No members yet</div>
               )}
             </div>
           </div>
@@ -243,10 +243,10 @@ export default function ProjectDetailPage({
 
         {/* Burndown Chart */}
         {burndownData && burndownData.length > 1 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-5">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingDown className="w-4 h-4 text-indigo-600" />
-              <h3 className="font-semibold text-gray-900">Burndown Chart</h3>
+              <TrendingDown className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <h3 className="font-semibold text-gray-900 dark:text-white">Burndown Chart</h3>
             </div>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={burndownData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -274,39 +274,39 @@ export default function ProjectDetailPage({
       <Modal isOpen={showEdit} onClose={() => setShowEdit(false)} title="Edit Project">
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Name *</label>
             <input
               value={editForm.name}
               onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
             <textarea
               value={editForm.description}
               onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Start Date</label>
               <input
                 type="date"
                 value={editForm.startDate}
                 onChange={(e) => setEditForm((f) => ({ ...f, startDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">End Date</label>
               <input
                 type="date"
                 value={editForm.endDate}
                 onChange={(e) => setEditForm((f) => ({ ...f, endDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>

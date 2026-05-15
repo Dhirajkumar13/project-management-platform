@@ -74,36 +74,36 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
       <Header title="Team Members" />
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <p className="text-gray-500 text-sm">{membersData?.length ?? 0} members</p>
+          <p className="text-gray-500 dark:text-slate-400 text-sm">{membersData?.length ?? 0} members</p>
           <Button onClick={() => setShowInvite(true)}>
             <Plus className="w-4 h-4" />
             Invite Member
           </Button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Member</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Joined</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
+              <tr className="border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Member</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Joined</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
               {isLoading ? (
                 <tr><td colSpan={4} className="px-6 py-8 text-center"><Spinner /></td></tr>
               ) : isError ? (
                 <tr><td colSpan={4}><ErrorState onRetry={refetch} /></td></tr>
               ) : membersData?.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <Avatar name={member.user.name} avatarUrl={member.user.avatarUrl} size="sm" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{member.user.name}</p>
-                        <p className="text-xs text-gray-500">{member.user.email}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{member.user.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">{member.user.email}</p>
                       </div>
                     </div>
                   </td>
@@ -121,12 +121,12 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
                       />
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{formatDate(member.joinedAt)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-400">{formatDate(member.joinedAt)}</td>
                   <td className="px-6 py-4 text-right">
                     {member.role !== 'OWNER' && (
                       <button
                         onClick={() => { if (confirm('Remove this member?')) removeMutation.mutate(member.userId) }}
-                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                        className="text-gray-400 dark:text-slate-500 hover:text-red-500 transition-colors p-1"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -142,16 +142,16 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
       <Modal isOpen={showInvite} onClose={() => { setShowInvite(false); reset() }} title="Invite Team Member">
         <form onSubmit={handleSubmit((d) => inviteMutation.mutate(d))} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email address *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Email address *</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input {...register('email')} type="email" placeholder="colleague@company.com"
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Role</label>
             <SelectDropdown
               value={watch('role') ?? 'MEMBER'}
               onChange={(v) => setValue('role', v as InviteForm['role'])}

@@ -63,12 +63,12 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 hover:shadow-md hover:border-indigo-200 cursor-pointer transition-all group"
+      className="bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500 cursor-pointer transition-all group"
     >
       <div className="flex items-start gap-2 mb-2">
         <div className={cn('w-2 h-2 rounded-full mt-1.5 flex-shrink-0', PRIORITY_DOTS[task.priority])} aria-hidden="true" />
         <span className="sr-only">{task.priority.toLowerCase()} priority</span>
-        <p className="text-sm text-gray-800 font-medium leading-snug flex-1 line-clamp-2">{task.title}</p>
+        <p className="text-sm text-gray-800 dark:text-slate-200 font-medium leading-snug flex-1 line-clamp-2">{task.title}</p>
       </div>
 
       {task.labels && task.labels.length > 0 && (
@@ -120,16 +120,16 @@ function Column({
 
   return (
     <div className="flex-shrink-0 w-72">
-      <div ref={setNodeRef} className={cn('bg-gray-50 rounded-xl border-t-4 flex flex-col max-h-full transition-colors', COLUMN_COLORS[status], isOver && 'bg-indigo-50')}>
+      <div ref={setNodeRef} className={cn('bg-gray-50 dark:bg-slate-800/60 rounded-xl border-t-4 flex flex-col max-h-full transition-colors', COLUMN_COLORS[status], isOver && 'bg-indigo-50 dark:bg-indigo-900/20')}>
         <div className="flex items-center justify-between px-3 py-2.5">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700">{STATUS_LABELS[status]}</span>
-            <span className="text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5 font-medium">{tasks.length}</span>
+            <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">{STATUS_LABELS[status]}</span>
+            <span className="text-xs bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-full px-2 py-0.5 font-medium">{tasks.length}</span>
           </div>
           <button
             onClick={() => onAddTask(status)}
             aria-label={`Add task to ${STATUS_LABELS[status]}`}
-            className="text-gray-400 hover:text-indigo-600 transition-colors p-1 rounded hover:bg-white"
+            className="text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1 rounded hover:bg-white dark:hover:bg-slate-700"
           >
             <Plus className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -307,15 +307,15 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
       <Header title={project?.name ?? 'Kanban Board'} subtitle={project ? 'Kanban Board' : undefined} backHref={backHref} titleSuffix={statusBadge} />
 
       {/* Filter bar */}
-      <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 bg-white flex-shrink-0 flex-wrap">
+      <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 flex-wrap">
         {/* Filters toggle chip */}
         <button
           onClick={() => setShowFilters((v) => !v)}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border font-medium transition-colors',
             showFilters || hasActiveFilter
-              ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+              ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+              : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
           )}
         >
           <Filter className="w-3.5 h-3.5" />
@@ -362,20 +362,20 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
         )}
 
         {/* View switcher */}
-        <div className="ml-auto flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="ml-auto flex items-center gap-1 bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
           <Link
             href={`/dashboard/${params.orgSlug}/projects/${projectId}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors"
           >
             <LayoutDashboard className="w-3.5 h-3.5" /> Overview
           </Link>
           <Link
             href={`/dashboard/${params.orgSlug}/projects/${projectId}/list`}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors"
           >
             <List className="w-3.5 h-3.5" /> List
           </Link>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white text-indigo-600 font-medium shadow-sm">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-medium shadow-sm">
             <LayoutGrid className="w-3.5 h-3.5" /> Kanban
           </span>
         </div>
@@ -415,23 +415,23 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
         >
           {/* Title */}
           <div>
-            <label htmlFor="task-title" className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <label htmlFor="task-title" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Title *</label>
             <input id="task-title" {...register('title')} placeholder="Task title" autoFocus
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="task-desc" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label htmlFor="task-desc" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
             <textarea id="task-desc" {...register('description')} rows={3} placeholder="Optional description…"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
           </div>
 
           {/* Priority + Due Date side by side */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Priority</label>
               <SelectDropdown
                 value={watch('priority') ?? 'MEDIUM'}
                 onChange={(v) => setValue('priority', v as CreateForm['priority'])}
@@ -445,19 +445,19 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
               />
             </div>
             <div>
-              <label htmlFor="task-due" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+              <label htmlFor="task-due" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Due Date</label>
               <input id="task-due" type="date" {...register('dueDate')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
           </div>
 
           {/* Assignees */}
           {members && members.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Assignees</label>
-              <div className="space-y-2 max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Assignees</label>
+              <div className="space-y-2 max-h-36 overflow-y-auto border border-gray-200 dark:border-slate-600 rounded-lg p-2">
                 {members.map((m) => (
-                  <label key={m.userId} className="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5">
+                  <label key={m.userId} className="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 rounded px-1 py-0.5">
                     <input
                       type="checkbox"
                       checked={selectedAssigneeIds.includes(m.userId)}
@@ -469,8 +469,8 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
                       className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     <Avatar name={m.user.name} avatarUrl={m.user.avatarUrl} size="xs" />
-                    <span className="text-sm text-gray-700">{m.user.name}</span>
-                    <span className="ml-auto text-xs text-gray-400">{m.role}</span>
+                    <span className="text-sm text-gray-700 dark:text-slate-300">{m.user.name}</span>
+                    <span className="ml-auto text-xs text-gray-400 dark:text-slate-500">{m.role}</span>
                   </label>
                 ))}
               </div>

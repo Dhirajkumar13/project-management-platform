@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Bell, ArrowLeft, Search } from 'lucide-react'
+import { Bell, ArrowLeft, Search, Sun, Moon, Monitor } from 'lucide-react'
 import { useNotificationStore } from '@/store/notification.store'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/lib/utils'
@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Notification } from '@/types'
 import { useRouter } from 'next/navigation'
 import { CommandPalette } from '@/components/ui/CommandPalette'
+import { useThemeStore, resolveTheme } from '@/store/theme.store'
 
 export function Header({ title, subtitle, backHref, titleSuffix }: {
   title?: string
@@ -19,6 +20,8 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
   const router = useRouter()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showPalette, setShowPalette] = useState(false)
+  const { preference, setPreference } = useThemeStore()
+  const resolved = resolveTheme(preference)
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -62,34 +65,63 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
   }
 
   return (
-    <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
+    <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 flex-shrink-0">
       <div className="flex items-center gap-3">
         {backHref && (
-          <button onClick={() => router.back()} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Go back">
+          <button onClick={() => router.back()} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors" aria-label="Go back">
             <ArrowLeft className="w-4 h-4" />
           </button>
         )}
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h1>
             {titleSuffix}
           </div>
-          {subtitle && <p className="text-xs text-gray-400 -mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-gray-400 dark:text-slate-500 -mt-0.5">{subtitle}</p>}
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <button
           onClick={() => setShowPalette(true)}
-          className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+          className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-lg transition-colors"
           aria-label="Open search (⌘K)"
         >
           <Search className="w-3.5 h-3.5" />
           <span className="text-xs">Search</span>
-          <kbd className="ml-1 text-xs font-mono bg-white border border-gray-200 rounded px-1 py-0.5 text-gray-400">⌘K</kbd>
+          <kbd className="ml-1 text-xs font-mono bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded px-1 py-0.5 text-gray-400 dark:text-slate-400">⌘K</kbd>
         </button>
 
         <CommandPalette open={showPalette} onClose={() => setShowPalette(false)} />
+
+        {/* Theme toggle */}
+        <div
+          role="group"
+          aria-label="Theme preference"
+          className="hidden sm:flex items-center bg-gray-100 dark:bg-slate-800 rounded-lg p-1 gap-0.5 border border-gray-200 dark:border-slate-700"
+        >
+          {([
+            { value: 'light',  icon: Sun,     label: 'Light mode' },
+            { value: 'dark',   icon: Moon,    label: 'Dark mode' },
+            { value: 'system', icon: Monitor, label: `System (${resolved})` },
+          ] as const).map(({ value, icon: Icon, label }) => (
+            <button
+              key={value}
+              onClick={() => setPreference(value)}
+              aria-pressed={preference === value}
+              aria-label={label}
+              title={label}
+              className={cn(
+                'p-1.5 rounded-md transition-all',
+                preference === value
+                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200'
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
 
         <div className="relative">
           <button
@@ -97,7 +129,7 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
             aria-label={unreadCount > 0 ? `Notifications — ${unreadCount} unread` : 'Notifications'}
             aria-expanded={showNotifications}
             aria-haspopup="true"
-            className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="relative p-2 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <Bell className="w-5 h-5" aria-hidden="true" />
             {unreadCount > 0 && (
@@ -108,12 +140,12 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+            <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Notifications</h3>
                 <div className="flex items-center gap-3">
                   {unreadCount > 0 && (
-                    <button onClick={handleMarkAllRead} className="text-xs text-indigo-600 hover:text-indigo-700">
+                    <button onClick={handleMarkAllRead} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
                       Mark all read
                     </button>
                   )}
@@ -126,23 +158,23 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <div className="py-8 text-center text-gray-500 text-sm">No notifications</div>
+                  <div className="py-8 text-center text-gray-500 dark:text-slate-400 text-sm">No notifications</div>
                 ) : (
                   notifications.map((n) => (
                     <div
                       key={n.id}
                       onClick={() => !n.read && handleMarkRead(n.id)}
                       className={cn(
-                        'px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors',
-                        !n.read && 'bg-indigo-50/50'
+                        'px-4 py-3 border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition-colors',
+                        !n.read && 'bg-indigo-50/50 dark:bg-indigo-900/20'
                       )}
                     >
                       <div className="flex items-start gap-3">
                         {!n.read && <div className="w-2 h-2 bg-indigo-500 rounded-full mt-1.5 flex-shrink-0" />}
                         <div className={cn('flex-1', n.read && 'ml-5')}>
-                          <p className="text-sm font-medium text-gray-900">{n.title}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
-                          <p className="text-xs text-gray-400 mt-1">{formatRelativeTime(n.createdAt)}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{n.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{n.message}</p>
+                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{formatRelativeTime(n.createdAt)}</p>
                         </div>
                       </div>
                     </div>

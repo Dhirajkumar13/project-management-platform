@@ -10,11 +10,10 @@ import { Organization } from '@/types'
 import api from '@/lib/api'
 import {
   LayoutDashboard, FolderOpen, Users, Settings, LogOut,
-  ChevronDown, Plus, CheckSquare, User, X, Sun, Moon, Monitor
+  ChevronDown, Plus, CheckSquare, User, X
 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { useThemeStore, resolveTheme } from '@/store/theme.store'
 
 interface SidebarProps {
   isOpen?: boolean
@@ -27,16 +26,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { user, logout: logoutStore } = useAuthStore()
   const { currentOrg, setCurrentOrg } = useOrgStore()
   const [showOrgPicker, setShowOrgPicker] = useState(false)
-  const { preference, setPreference } = useThemeStore()
-  const resolved = resolveTheme(preference)
-
-  const cycleTheme = () => {
-    const next = preference === 'light' ? 'dark' : preference === 'dark' ? 'system' : 'light'
-    setPreference(next)
-  }
-
-  const ThemeIcon = preference === 'light' ? Sun : preference === 'dark' ? Moon : Monitor
-
   const { data: orgsData } = useQuery({
     queryKey: ['orgs'],
     queryFn: () => api.get('/organizations').then((r) => r.data.data as Organization[]),
@@ -145,20 +134,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           </div>
           <User className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-400 flex-shrink-0" />
         </Link>
-        <div className="flex items-center gap-2 mb-2">
-          <button
-            onClick={cycleTheme}
-            aria-label={`Switch theme (current: ${preference})`}
-            title={`Theme: ${preference} — click to cycle`}
-            className="flex-1 flex items-center gap-2 px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm transition-colors"
-          >
-            <ThemeIcon className="w-4 h-4" aria-hidden="true" />
-            <span className="capitalize">{preference}</span>
-            {preference === 'system' && (
-              <span className="ml-auto text-xs text-slate-600">({resolved})</span>
-            )}
-          </button>
-        </div>
         <button
           onClick={handleLogout}
           aria-label="Sign out"
