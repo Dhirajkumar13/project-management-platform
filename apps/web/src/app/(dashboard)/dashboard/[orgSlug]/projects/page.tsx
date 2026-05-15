@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { ErrorState } from '@/components/ui/ErrorState'
 import api from '@/lib/api'
 import { Project, ProjectStatus } from '@/types'
-import { formatDate, cn } from '@/lib/utils'
+import { formatDate, cn, hasOrgRole } from '@/lib/utils'
 import { Plus, FolderOpen, Calendar, Users, BarChart2, Search } from 'lucide-react'
 import { SelectDropdown } from '@/components/ui/SelectDropdown'
 import { useForm } from 'react-hook-form'
@@ -161,10 +161,12 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
             ))}
           </div>
 
-          <Button className="ml-auto" onClick={() => setShowCreate(true)}>
-            <Plus className="w-3.5 h-3.5" />
-            New Project
-          </Button>
+          {hasOrgRole(currentOrg?.role, 'MEMBER') && (
+            <Button className="ml-auto" onClick={() => setShowCreate(true)}>
+              <Plus className="w-3.5 h-3.5" />
+              New Project
+            </Button>
+          )}
         </div>
 
         {isLoading ? (

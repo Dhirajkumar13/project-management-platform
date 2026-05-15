@@ -16,7 +16,7 @@ import { Modal } from '@/components/ui/Modal'
 import api from '@/lib/api'
 import { Task, TaskStatus, Priority, KanbanBoard, Label, ProjectMember } from '@/types'
 import {
-  cn, PRIORITY_DOTS, STATUS_LABELS, formatDate, isOverdue
+  cn, PRIORITY_DOTS, STATUS_LABELS, formatDate, isOverdue, hasOrgRole
 } from '@/lib/utils'
 import { Plus, MessageSquare, Calendar, Filter, X, LayoutDashboard, List, LayoutGrid } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -111,10 +111,10 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
 }
 
 function Column({
-  status, tasks, orgId, projectId, onTaskClick, onAddTask
+  status, tasks, orgId, projectId, onTaskClick, onAddTask, canAdd
 }: {
   status: TaskStatus; tasks: Task[]; orgId: string; projectId: string
-  onTaskClick: (task: Task) => void; onAddTask: (status: TaskStatus) => void
+  onTaskClick: (task: Task) => void; onAddTask: (status: TaskStatus) => void; canAdd: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -127,13 +127,15 @@ function Column({
             <span className="text-sm font-semibold text-gray-700 dark:text-zinc-200">{STATUS_LABELS[status]}</span>
             <span className="text-xs bg-gray-100 dark:bg-white/[0.07] text-gray-500 dark:text-zinc-400 rounded-full px-2 py-0.5 font-medium">{tasks.length}</span>
           </div>
-          <button
-            onClick={() => onAddTask(status)}
-            aria-label={`Add task to ${STATUS_LABELS[status]}`}
-            className="text-gray-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors p-1 rounded hover:bg-white dark:hover:bg-surface-elevated"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-          </button>
+          {canAdd && (
+            <button
+              onClick={() => onAddTask(status)}
+              aria-label={`Add task to ${STATUS_LABELS[status]}`}
+              className="text-gray-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors p-1 rounded hover:bg-white dark:hover:bg-surface-elevated"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2 min-h-24">
@@ -394,6 +396,7 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
                 projectId={projectId}
                 onTaskClick={setSelectedTask}
                 onAddTask={setAddingToColumn}
+                canAdd={hasOrgRole(currentOrg?.role, 'MEMBER')}
               />
             ))}
           </div>

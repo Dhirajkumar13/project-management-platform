@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Avatar } from '@/components/ui/Avatar'
 import api from '@/lib/api'
 import { OrgMember, OrgRole } from '@/types'
-import { cn, ROLE_COLORS, formatDate } from '@/lib/utils'
+import { cn, ROLE_COLORS, formatDate, hasOrgRole } from '@/lib/utils'
 import { Plus, Trash2, Mail } from 'lucide-react'
 import { SelectDropdown } from '@/components/ui/SelectDropdown'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -75,10 +75,12 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <p className="text-gray-500 dark:text-zinc-400 text-sm">{membersData?.length ?? 0} members</p>
-          <Button onClick={() => setShowInvite(true)}>
-            <Plus className="w-4 h-4" />
-            Invite Member
-          </Button>
+          {hasOrgRole(currentOrg?.role, 'ADMIN') && (
+            <Button onClick={() => setShowInvite(true)}>
+              <Plus className="w-4 h-4" />
+              Invite Member
+            </Button>
+          )}
         </div>
 
         <div className="bg-white dark:bg-surface-card rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.08] overflow-hidden">
@@ -108,9 +110,9 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {member.role === 'OWNER' ? (
+                    {member.role === 'OWNER' || !hasOrgRole(currentOrg?.role, 'ADMIN') ? (
                       <span className={cn('text-xs px-2.5 py-1 rounded-full font-medium', ROLE_COLORS[member.role])}>
-                        Owner
+                        {member.role.charAt(0) + member.role.slice(1).toLowerCase()}
                       </span>
                     ) : (
                       <SelectDropdown
@@ -132,7 +134,7 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-zinc-400">{formatDate(member.joinedAt)}</td>
                   <td className="px-6 py-4 text-right">
-                    {member.role !== 'OWNER' && (
+                    {member.role !== 'OWNER' && hasOrgRole(currentOrg?.role, 'ADMIN') && (
                       <button
                         onClick={() => { if (confirm('Remove this member?')) removeMutation.mutate(member.userId) }}
                         className="text-gray-400 dark:text-zinc-500 hover:text-red-500 transition-colors p-1"

@@ -11,7 +11,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { Button } from '@/components/ui/Button'
 import api from '@/lib/api'
 import { Task, TaskStatus, Priority } from '@/types'
-import { cn, STATUS_COLORS, STATUS_LABELS, PRIORITY_COLORS, PRIORITY_DOTS, formatDate, isOverdue } from '@/lib/utils'
+import { cn, STATUS_COLORS, STATUS_LABELS, PRIORITY_COLORS, PRIORITY_DOTS, formatDate, isOverdue, hasOrgRole } from '@/lib/utils'
 import { Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown, LayoutGrid, LayoutDashboard, List } from 'lucide-react'
 import { ProjectStatusBadge } from '@/components/ui/ProjectStatusBadge'
 import { SelectDropdown } from '@/components/ui/SelectDropdown'
@@ -155,7 +155,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
               options={(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as Priority[]).map((p) => ({ label: p, value: p }))}
             />
 
-            {selected.size > 0 && (
+            {selected.size > 0 && hasOrgRole(currentOrg?.role, 'MEMBER') && (
               <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
                 <span className="text-sm text-gray-500">{selected.size} selected</span>
                 <SelectDropdown
@@ -209,10 +209,12 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-surface-elevated/50">
-                  <th className="px-4 py-3 w-10">
-                    <input type="checkbox" checked={allSelected} onChange={toggleAll}
-                      className="rounded border-gray-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer" />
-                  </th>
+                  {hasOrgRole(currentOrg?.role, 'MEMBER') && (
+                    <th className="px-4 py-3 w-10">
+                      <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                        className="rounded border-gray-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer" />
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left">
                     <button onClick={() => toggleSort('title')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-zinc-200">
                       Title <SortIcon field="title" />
@@ -244,9 +246,12 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
                   <tr key={task.id}
                     onClick={() => router.push(`/dashboard/${params.orgSlug}/projects/${params.projectId}/tasks/${task.id}`)}
                     className={cn('hover:bg-gray-50 dark:hover:bg-surface-elevated/50 transition-colors cursor-pointer', selected.has(task.id) && 'bg-zinc-100 dark:bg-surface-card/40')}>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggleOne(task.id)}
-                        className="rounded border-gray-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer" />
+                    {hasOrgRole(currentOrg?.role, 'MEMBER') && (
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggleOne(task.id)}
+                          className="rounded border-gray-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer" />
+                      </td>
+                    )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
