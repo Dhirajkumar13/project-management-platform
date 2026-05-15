@@ -7,7 +7,8 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { SelectDropdown } from '@/components/ui/SelectDropdown'
 import api from '@/lib/api'
-import { cn, STATUS_LABELS, STATUS_COLORS, formatRelativeTime, formatDate, isOverdue } from '@/lib/utils'
+import { cn, STATUS_LABELS, STATUS_COLORS, formatRelativeTime, formatDate, isOverdue, hasOrgRole } from '@/lib/utils'
+import { useOrgStore } from '@/store/org.store'
 import { X, Trash2, Send, Plus, Clock, Pencil, Check, ChevronRight, MessageSquare, History, ListChecks } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ReactMarkdown from 'react-markdown'
@@ -49,6 +50,8 @@ function AddPopover<T extends { id: string }>({
 }
 
 export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: Props) {
+  const { currentOrg } = useOrgStore()
+  const canEdit = hasOrgRole(currentOrg?.role, 'MEMBER')
   const [activeTab, setActiveTab] = useState<'comments' | 'activity'>('comments')
   const [comment, setComment] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
@@ -345,31 +348,33 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
                     </div>
                   ))}
 
-                  {/* Comment composer */}
-                  <div className="flex gap-3 pt-2">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center">
-                        <span className="text-xs font-bold text-zinc-700">Y</span>
+                  {/* Comment composer — MEMBER+ only */}
+                  {canEdit && (
+                    <div className="flex gap-3 pt-2">
+                      <div className="flex-shrink-0 mt-1">
+                        <div className="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center">
+                          <span className="text-xs font-bold text-zinc-700">Y</span>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <textarea
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && comment.trim()) commentMutation.mutate(comment.trim()) }}
+                          placeholder="Add a comment… (Ctrl+Enter to submit)"
+                          rows={3}
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+                        />
+                        {comment.trim() && (
+                          <div className="flex justify-end mt-2">
+                            <Button size="sm" onClick={() => commentMutation.mutate(comment.trim())} loading={commentMutation.isPending}>
+                              <Send className="w-3.5 h-3.5 mr-1" /> Submit
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <textarea
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && comment.trim()) commentMutation.mutate(comment.trim()) }}
-                        placeholder="Add a comment… (Ctrl+Enter to submit)"
-                        rows={3}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
-                      />
-                      {comment.trim() && (
-                        <div className="flex justify-end mt-2">
-                          <Button size="sm" onClick={() => commentMutation.mutate(comment.trim())} loading={commentMutation.isPending}>
-                            <Send className="w-3.5 h-3.5 mr-1" /> Submit
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { taskController, upload, createTaskSchema, updateTaskSchema, moveTaskSchema, createCommentSchema, createSubtaskSchema, bulkActionSchema } from '@/controllers/task.controller'
 import { authenticate } from '@/middleware/auth'
-import { orgAccess } from '@/middleware/orgAccess'
+import { orgAccess, requireOrgRole } from '@/middleware/orgAccess'
 import { validate } from '@/middleware/validate'
 import { uploadLimiter } from '@/middleware/rateLimiter'
 import { prisma } from '@/config/database'
@@ -183,8 +183,8 @@ router.use(authenticate, orgAccess)
  */
 router.get('/', taskController.list)
 router.get('/kanban', taskController.kanban)
-router.post('/', validate(createTaskSchema), taskController.create)
-router.post('/bulk', validate(bulkActionSchema), taskController.bulkAction)
+router.post('/', requireOrgRole('MEMBER'), validate(createTaskSchema), taskController.create)
+router.post('/bulk', requireOrgRole('MEMBER'), validate(bulkActionSchema), taskController.bulkAction)
 
 router.get('/export', async (req: AuthenticatedRequest, res) => {
   const { projectId } = req.params
@@ -677,28 +677,28 @@ router.get('/export', async (req: AuthenticatedRequest, res) => {
  *         description: Paginated activity log
  */
 router.get('/:taskId', taskController.getById)
-router.patch('/:taskId', validate(updateTaskSchema), taskController.update)
-router.delete('/:taskId', taskController.delete)
-router.patch('/:taskId/move', validate(moveTaskSchema), taskController.moveTask)
+router.patch('/:taskId', requireOrgRole('MEMBER'), validate(updateTaskSchema), taskController.update)
+router.delete('/:taskId', requireOrgRole('MEMBER'), taskController.delete)
+router.patch('/:taskId/move', requireOrgRole('MEMBER'), validate(moveTaskSchema), taskController.moveTask)
 
-router.post('/:taskId/assignees', taskController.addAssignee)
-router.delete('/:taskId/assignees/:userId', taskController.removeAssignee)
+router.post('/:taskId/assignees', requireOrgRole('MEMBER'), taskController.addAssignee)
+router.delete('/:taskId/assignees/:userId', requireOrgRole('MEMBER'), taskController.removeAssignee)
 
-router.post('/:taskId/labels', taskController.addLabel)
-router.delete('/:taskId/labels/:labelId', taskController.removeLabel)
+router.post('/:taskId/labels', requireOrgRole('MEMBER'), taskController.addLabel)
+router.delete('/:taskId/labels/:labelId', requireOrgRole('MEMBER'), taskController.removeLabel)
 
 router.get('/:taskId/comments', taskController.getComments)
-router.post('/:taskId/comments', validate(createCommentSchema), taskController.createComment)
-router.delete('/:taskId/comments/:commentId', taskController.deleteComment)
+router.post('/:taskId/comments', requireOrgRole('MEMBER'), validate(createCommentSchema), taskController.createComment)
+router.delete('/:taskId/comments/:commentId', requireOrgRole('MEMBER'), taskController.deleteComment)
 
-router.post('/:taskId/attachments', uploadLimiter, upload.single('file'), taskController.uploadAttachment)
+router.post('/:taskId/attachments', requireOrgRole('MEMBER'), uploadLimiter, upload.single('file'), taskController.uploadAttachment)
 router.get('/:taskId/attachments', taskController.getAttachments)
-router.delete('/:taskId/attachments/:attachmentId', taskController.deleteAttachment)
+router.delete('/:taskId/attachments/:attachmentId', requireOrgRole('MEMBER'), taskController.deleteAttachment)
 
 router.get('/:taskId/subtasks', taskController.getSubtasks)
-router.post('/:taskId/subtasks', validate(createSubtaskSchema), taskController.createSubtask)
-router.patch('/:taskId/subtasks/:subtaskId', taskController.updateSubtask)
-router.delete('/:taskId/subtasks/:subtaskId', taskController.deleteSubtask)
+router.post('/:taskId/subtasks', requireOrgRole('MEMBER'), validate(createSubtaskSchema), taskController.createSubtask)
+router.patch('/:taskId/subtasks/:subtaskId', requireOrgRole('MEMBER'), taskController.updateSubtask)
+router.delete('/:taskId/subtasks/:subtaskId', requireOrgRole('MEMBER'), taskController.deleteSubtask)
 
 router.get('/:taskId/activities', taskController.getActivities)
 
