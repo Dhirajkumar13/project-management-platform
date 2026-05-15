@@ -1,22 +1,20 @@
 'use client'
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { getSocket } from '@/lib/socket'
+import { connectSocket } from '@/lib/socket'
+import { useAuthStore } from '@/store/auth.store'
 
-/**
- * Joins the project Socket.IO room and invalidates TanStack Query caches
- * whenever any collaborator mutates a task. Cleans up on unmount.
- */
 export function useProjectSocket(projectId: string, orgId: string) {
   const qc = useQueryClient()
+  const accessToken = useAuthStore((s) => s.accessToken)
 
   useEffect(() => {
-    if (!projectId || !orgId) return
+    if (!projectId || !orgId || !accessToken) return
 
-    const socket = getSocket()
-    if (!socket) return
-
-    socket.emit('join:project', projectId)
+    // connectSocket is idempotent — returns the existing socket if already created.
+    // We call it here (not just getSocket) because React runs child effects before
+    // parent effects, so the layout's connectSocket call may not have run yet.
+    const socket = connectSocket(accessToken)
 
     const invalidateTasks = () => {
       qc.invalidateQueries({ queryKey: ['kanban', projectId] })
@@ -30,19 +28,34 @@ export function useProjectSocket(projectId: string, orgId: string) {
       qc.invalidateQueries({ queryKey: ['burndown', orgId, projectId] })
     }
 
-    socket.on('task:created', invalidateAll)
-    socket.on('task:updated', invalidateTasks)
-    socket.on('task:moved', invalidateTasks)
-    socket.on('task:deleted', invalidateAll)
-    socket.on('tasks:bulk-updated', invalidateAll)
+    let joined = false
+    const join = () => {
+      joined = true
+      socket.emit('join:project', projectId)
+      socket.on('task:created', invalidateAll)
+      socket.on('task:updated', invalidateTasks)
+      socket.on('task:moved', invalidateTasks)
+      socket.on('task:deleted', invalidateAll)
+      socket.on('tasks:bulk-updated', invalidateAll)
+    }
+
+    if (socket.connected) {
+      join()
+    } else {
+      socket.once('connect', join)
+    }
 
     return () => {
-      socket.emit('leave:project', projectId)
-      socket.off('task:created', invalidateAll)
-      socket.off('task:updated', invalidateTasks)
-      socket.off('task:moved', invalidateTasks)
-      socket.off('task:deleted', invalidateAll)
-      socket.off('tasks:bulk-updated', invalidateAll)
+      // Remove the pending connect listener if we never got a connection
+      socket.off('connect', join)
+      if (joined) {
+        socket.emit('leave:project', projectId)
+        socket.off('task:created', invalidateAll)
+        socket.off('task:updated', invalidateTasks)
+        socket.off('task:moved', invalidateTasks)
+        socket.off('task:deleted', invalidateAll)
+        socket.off('tasks:bulk-updated', invalidateAll)
+      }
     }
-  }, [projectId, orgId, qc])
+  }, [projectId, orgId, qc, accessToken])
 }

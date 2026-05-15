@@ -6,6 +6,8 @@ import { prisma } from './database'
 import { env } from './env'
 import { logger } from './logger'
 
+type ExtendedSocket = Socket & { userId: string; orgIds: string[] }
+
 let ioInstance: Server | null = null
 
 export const setupSocket = (io: Server) => {
@@ -30,21 +32,27 @@ export const setupSocket = (io: Server) => {
   })
 
   io.on('connection', async (socket: Socket) => {
-    const userId = (socket as Socket & { userId: string }).userId
+    const s = socket as ExtendedSocket
+    const userId = s.userId
     logger.debug(`Socket connected: ${socket.id} (user: ${userId})`)
 
-    // Join all org rooms
+    // Join user's own room (for targeted notifications) and all org rooms
     try {
       const memberships = await prisma.organizationMember.findMany({
         where: { userId },
         select: { organizationId: true },
       })
-      for (const m of memberships) {
-        await socket.join(`org:${m.organizationId}`)
+      const orgIds = memberships.map((m) => m.organizationId)
+      s.orgIds = orgIds
+
+      await socket.join(`user:${userId}`)
+      for (const orgId of orgIds) {
+        await socket.join(`org:${orgId}`)
       }
-      io.to(Array.from(socket.rooms)).emit('user:online', { userId })
+      // Notify other org members that this user came online (exclude sender)
+      orgIds.forEach((orgId) => socket.to(`org:${orgId}`).emit('user:online', { userId }))
     } catch (e) {
-      logger.error('Socket join org rooms error', e)
+      logger.error('Socket join rooms error', e)
     }
 
     socket.on('join:project', (projectId: string) => {
@@ -72,7 +80,8 @@ export const setupSocket = (io: Server) => {
     })
 
     socket.on('disconnect', () => {
-      io.emit('user:offline', { userId })
+      const orgIds = (socket as ExtendedSocket).orgIds ?? []
+      orgIds.forEach((orgId) => socket.to(`org:${orgId}`).emit('user:offline', { userId }))
       logger.debug(`Socket disconnected: ${socket.id}`)
     })
   })

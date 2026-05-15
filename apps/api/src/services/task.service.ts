@@ -2,7 +2,7 @@ import { taskRepository } from '@/repositories/task.repository'
 import { AppError } from '@/middleware/error'
 import { TaskStatus, Priority } from '@prisma/client'
 import { PaginationParams } from '@/types'
-import { emitToProject, emitToTask } from '@/config/socket'
+import { emitToProject, emitToTask, emitToUser } from '@/config/socket'
 import { prisma } from '@/config/database'
 
 export const taskService = {
@@ -133,6 +133,25 @@ export const taskService = {
     await taskRepository.createActivity({ taskId, userId, action: 'added assignee', newValue: assigneeId })
     const updated = await taskRepository.findById(taskId, projectId)
     emitToProject(projectId, 'task:updated', updated)
+
+    if (assigneeId !== userId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { organizationId: true },
+      })
+      const notification = await prisma.notification.create({
+        data: {
+          userId: assigneeId,
+          organizationId: project?.organizationId,
+          type: 'task_assigned',
+          title: 'Task assigned to you',
+          message: `You were assigned to "${task.title}"`,
+          data: { taskId, projectId },
+        },
+      })
+      emitToUser(assigneeId, 'notification:new', notification)
+    }
+
     return assignee
   },
 
