@@ -10,7 +10,7 @@ import { Organization } from '@/types'
 import api from '@/lib/api'
 import {
   LayoutDashboard, FolderOpen, Users, Settings, LogOut,
-  ChevronDown, Plus, CheckSquare, Search, User, X
+  ChevronDown, Plus, CheckSquare, User, X
 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
@@ -39,7 +39,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     { href: `/dashboard/${orgSlug}`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/dashboard/${orgSlug}/projects`, label: 'Projects', icon: FolderOpen },
     { href: `/dashboard/${orgSlug}/my-work`, label: 'My Work', icon: CheckSquare },
-    { href: `/dashboard/${orgSlug}/search`, label: 'Search', icon: Search },
     { href: `/dashboard/${orgSlug}/members`, label: 'Members', icon: Users },
     { href: `/dashboard/${orgSlug}/settings`, label: 'Settings', icon: Settings },
   ]

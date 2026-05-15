@@ -1,15 +1,35 @@
 'use client'
-import { useState } from 'react'
-import { Bell, Search } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Bell, ArrowLeft, Search } from 'lucide-react'
 import { useNotificationStore } from '@/store/notification.store'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/lib/utils'
 import api from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import { Notification } from '@/types'
+import { useRouter } from 'next/navigation'
+import { CommandPalette } from '@/components/ui/CommandPalette'
 
-export function Header({ title }: { title?: string }) {
+export function Header({ title, subtitle, backHref, titleSuffix }: {
+  title?: string
+  subtitle?: string
+  backHref?: string
+  titleSuffix?: React.ReactNode
+}) {
+  const router = useRouter()
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showPalette, setShowPalette] = useState(false)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowPalette((v) => !v)
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [])
   const { unreadCount, notifications, markRead, markAllRead, clearNotifications, setNotifications, setUnreadCount } = useNotificationStore()
 
   useQuery({
@@ -43,9 +63,34 @@ export function Header({ title }: { title?: string }) {
 
   return (
     <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
-      <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+      <div className="flex items-center gap-3">
+        {backHref && (
+          <button onClick={() => router.back()} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Go back">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        )}
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+            {titleSuffix}
+          </div>
+          {subtitle && <p className="text-xs text-gray-400 -mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
 
       <div className="flex items-center gap-3">
+        <button
+          onClick={() => setShowPalette(true)}
+          className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+          aria-label="Open search (⌘K)"
+        >
+          <Search className="w-3.5 h-3.5" />
+          <span className="text-xs">Search</span>
+          <kbd className="ml-1 text-xs font-mono bg-white border border-gray-200 rounded px-1 py-0.5 text-gray-400">⌘K</kbd>
+        </button>
+
+        <CommandPalette open={showPalette} onClose={() => setShowPalette(false)} />
+
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}

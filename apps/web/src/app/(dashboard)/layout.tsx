@@ -14,8 +14,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const addNotification = useNotificationStore((s) => s.addNotification)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  // Zustand persist starts with null defaults and rehydrates from localStorage async.
+  // We must wait for hydration before checking auth — otherwise every refresh redirects to login.
+  useEffect(() => {
+    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true))
+    if (useAuthStore.persist.hasHydrated()) setHydrated(true)
+    return unsub
+  }, [])
 
   useEffect(() => {
+    if (!hydrated) return
     if (!user) {
       router.replace('/login')
       return
@@ -36,9 +46,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => {
       socket.off('notification:new')
     }
-  }, [user, accessToken, router, addNotification])
+  }, [hydrated, user, accessToken, router, addNotification])
 
-  if (!user) return <LoadingScreen />
+  if (!hydrated || !user) return <LoadingScreen />
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">

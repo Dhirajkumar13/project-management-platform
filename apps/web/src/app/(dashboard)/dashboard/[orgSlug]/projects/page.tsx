@@ -10,7 +10,8 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import api from '@/lib/api'
 import { Project, ProjectStatus } from '@/types'
 import { formatDate, STATUS_COLORS, cn } from '@/lib/utils'
-import { Plus, FolderOpen, Calendar, Users, BarChart2 } from 'lucide-react'
+import { Plus, FolderOpen, Calendar, Users, BarChart2, Search } from 'lucide-react'
+import { SelectDropdown } from '@/components/ui/SelectDropdown'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -28,6 +29,8 @@ const schema = z.object({
   description: z.string().optional(),
   status: z.enum(['ACTIVE', 'ARCHIVED', 'COMPLETED']).default('ACTIVE'),
   visibility: z.enum(['PRIVATE', 'PUBLIC']).default('PRIVATE'),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 })
 type FormData = z.infer<typeof schema>
 
@@ -79,10 +82,11 @@ function ProjectCard({ project, orgSlug }: { project: Project; orgSlug: string }
 export default function ProjectsPage({ params }: { params: { orgSlug: string } }) {
   const [showCreate, setShowCreate] = useState(false)
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('')
+  const [searchQuery, setSearchQuery] = useState('')
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const qc = useQueryClient()
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data: rawData, isLoading, isError, refetch } = useQuery({
     queryKey: ['projects', currentOrg?.id, statusFilter],
     queryFn: () =>
       api.get(`/organizations/${currentOrg!.id}/projects`, {
@@ -91,7 +95,12 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
     enabled: !!currentOrg?.id,
   })
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const data = searchQuery.trim()
+    ? rawData?.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : rawData
+
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
@@ -110,6 +119,23 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
     <div className="flex-1 overflow-y-auto">
       <Header title="Projects" />
       <div className="p-6">
+        {/* Search bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search projects by name or description..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              ×
+            </button>
+          )}
+        </div>
+
         <div className="flex items-center justify-between mb-6">
           <div className="flex gap-2">
             {(['', 'ACTIVE', 'ARCHIVED', 'COMPLETED'] as const).map((s) => (
@@ -163,19 +189,41 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input {...register('startDate')} type="date"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input {...register('endDate')} type="date"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select {...register('status')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="ACTIVE">Active</option>
-                <option value="ARCHIVED">Archived</option>
-                <option value="COMPLETED">Completed</option>
-              </select>
+              <SelectDropdown
+                value={watch('status') ?? 'ACTIVE'}
+                onChange={(v) => setValue('status', v as FormData['status'])}
+                options={[
+                  { label: 'Active', value: 'ACTIVE' },
+                  { label: 'Archived', value: 'ARCHIVED' },
+                  { label: 'Completed', value: 'COMPLETED' },
+                ]}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
-              <select {...register('visibility')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="PRIVATE">Private</option>
-                <option value="PUBLIC">Public</option>
-              </select>
+              <SelectDropdown
+                value={watch('visibility') ?? 'PRIVATE'}
+                onChange={(v) => setValue('visibility', v as FormData['visibility'])}
+                options={[
+                  { label: 'Private', value: 'PRIVATE' },
+                  { label: 'Public', value: 'PUBLIC' },
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">

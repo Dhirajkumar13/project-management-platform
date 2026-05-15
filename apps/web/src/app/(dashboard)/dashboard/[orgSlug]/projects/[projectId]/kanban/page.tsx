@@ -18,13 +18,16 @@ import { Task, TaskStatus, Priority, KanbanBoard, Label, ProjectMember } from '@
 import {
   cn, PRIORITY_DOTS, STATUS_LABELS, formatDate, isOverdue
 } from '@/lib/utils'
-import { Plus, MessageSquare, Calendar, SlidersHorizontal, X } from 'lucide-react'
+import { Plus, MessageSquare, Calendar, Filter, X, LayoutDashboard, List, LayoutGrid } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { TaskDetailModal } from '@/components/modals/TaskDetailModal'
 import { ErrorState } from '@/components/ui/ErrorState'
+import { SelectDropdown } from '@/components/ui/SelectDropdown'
+import { ProjectStatusBadge } from '@/components/ui/ProjectStatusBadge'
+import Link from 'next/link'
 
 const COLUMNS: TaskStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE']
 const COLUMN_COLORS: Record<TaskStatus, string> = {
@@ -42,6 +45,7 @@ const createSchema = z.object({
   dueDate: z.string().optional(),
 })
 type CreateForm = z.infer<typeof createSchema>
+
 
 function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
@@ -154,6 +158,7 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [addingToColumn, setAddingToColumn] = useState<TaskStatus | null>(null)
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([])
+  const [showFilters, setShowFilters] = useState(true)
   const [filterPriority, setFilterPriority] = useState<Priority | ''>('')
   const [filterAssignee, setFilterAssignee] = useState('')
   const [filterLabel, setFilterLabel] = useState('')
@@ -163,6 +168,14 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
+
+  const { data: project } = useQuery({
+    queryKey: ['project', orgId, projectId],
+    queryFn: () =>
+      api.get(`/organizations/${orgId}/projects/${projectId}`)
+        .then((r) => r.data.data as { name: string; status: string }),
+    enabled: !!orgId,
+  })
 
   const { data: board, isLoading, isError, refetch } = useQuery({
     queryKey: ['kanban', projectId],
@@ -216,7 +229,7 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
     },
   })
 
-  const { register, handleSubmit, reset, formState: { isSubmitting, errors } } = useForm<CreateForm>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { isSubmitting, errors } } = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
     defaultValues: { priority: 'MEDIUM' },
   })
@@ -280,54 +293,92 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
   }, [board, projectId, qc, moveMutation])
 
   if (isLoading) return <div className="flex-1 flex items-center justify-center"><div className="animate-spin h-6 w-6 border-2 border-indigo-600 rounded-full border-t-transparent" /></div>
-  if (isError) return <div className="flex-1"><Header title="Kanban Board" /><ErrorState onRetry={refetch} /></div>
+  const backHref = `/dashboard/${params.orgSlug}/projects/${projectId}`
+
+  const statusBadge = project && orgId ? (
+    <ProjectStatusBadge orgId={orgId} projectId={projectId} status={project.status ?? 'ACTIVE'} />
+  ) : null
+
+  if (isError) return <div className="flex-1"><Header title={project?.name ?? 'Kanban Board'} subtitle={project ? 'Kanban Board' : undefined} backHref={backHref} /><ErrorState onRetry={refetch} /></div>
   if (!board || !activeBoard) return null
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <Header title="Kanban Board" />
+      <Header title={project?.name ?? 'Kanban Board'} subtitle={project ? 'Kanban Board' : undefined} backHref={backHref} titleSuffix={statusBadge} />
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 bg-white flex-shrink-0 flex-wrap">
-        <SlidersHorizontal className="w-4 h-4 text-gray-400 flex-shrink-0" />
-        <select
-          value={filterPriority}
-          onChange={(e) => setFilterPriority(e.target.value as Priority | '')}
-          className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        {/* Filters toggle chip */}
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border font-medium transition-colors',
+            showFilters || hasActiveFilter
+              ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+          )}
         >
-          <option value="">All Priorities</option>
-          {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as Priority[]).map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <select
-          value={filterAssignee}
-          onChange={(e) => setFilterAssignee(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <option value="">All Assignees</option>
-          {members?.map((m) => (
-            <option key={m.userId} value={m.userId}>{m.user.name}</option>
-          ))}
-        </select>
-        <select
-          value={filterLabel}
-          onChange={(e) => setFilterLabel(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <option value="">All Labels</option>
-          {labels?.map((l) => (
-            <option key={l.id} value={l.id}>{l.name}</option>
-          ))}
-        </select>
-        {hasActiveFilter && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <X className="w-3.5 h-3.5" /> Clear filters
-          </button>
+          <Filter className="w-3.5 h-3.5" />
+          Filters
+          {hasActiveFilter && (
+            <span className="ml-0.5 w-4 h-4 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">
+              {[filterPriority, filterAssignee, filterLabel].filter(Boolean).length}
+            </span>
+          )}
+        </button>
+
+        {showFilters && (
+          <>
+            <SelectDropdown
+              variant="chip"
+              placeholder="Priority"
+              value={filterPriority}
+              onChange={(v) => setFilterPriority(v as Priority | '')}
+              options={(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as Priority[]).map((p) => ({ label: p, value: p }))}
+            />
+            <SelectDropdown
+              variant="chip"
+              placeholder="Assignee"
+              value={filterAssignee}
+              onChange={setFilterAssignee}
+              options={(members ?? []).map((m) => ({ label: m.user.name, value: m.userId }))}
+            />
+            <SelectDropdown
+              variant="chip"
+              placeholder="Label"
+              value={filterLabel}
+              onChange={setFilterLabel}
+              options={(labels ?? []).map((l) => ({ label: l.name, value: l.id, color: l.color }))}
+            />
+            {hasActiveFilter && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <X className="w-3.5 h-3.5" /> Clear
+              </button>
+            )}
+          </>
         )}
+
+        {/* View switcher */}
+        <div className="ml-auto flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <Link
+            href={`/dashboard/${params.orgSlug}/projects/${projectId}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" /> Overview
+          </Link>
+          <Link
+            href={`/dashboard/${params.orgSlug}/projects/${projectId}/list`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors"
+          >
+            <List className="w-3.5 h-3.5" /> List
+          </Link>
+          <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white text-indigo-600 font-medium shadow-sm">
+            <LayoutGrid className="w-3.5 h-3.5" /> Kanban
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 overflow-x-auto p-6">
@@ -380,14 +431,18 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
           {/* Priority + Due Date side by side */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="task-priority" className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-              <select id="task-priority" {...register('priority')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="CRITICAL">Critical</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+              <SelectDropdown
+                value={watch('priority') ?? 'MEDIUM'}
+                onChange={(v) => setValue('priority', v as CreateForm['priority'])}
+                options={[
+                  { label: 'Low', value: 'LOW' },
+                  { label: 'Medium', value: 'MEDIUM' },
+                  { label: 'High', value: 'HIGH' },
+                  { label: 'Critical', value: 'CRITICAL' },
+                ]}
+                className="w-full"
+              />
             </div>
             <div>
               <label htmlFor="task-due" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>

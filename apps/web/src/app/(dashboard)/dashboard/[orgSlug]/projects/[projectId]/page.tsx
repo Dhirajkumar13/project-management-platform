@@ -1,17 +1,22 @@
 'use client'
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useOrgStore } from '@/store/org.store'
 import { useProjectSocket } from '@/hooks/useProjectSocket'
 import { Header } from '@/components/layout/Header'
 import { Avatar } from '@/components/ui/Avatar'
 import { Spinner } from '@/components/ui/Spinner'
 import { ErrorState } from '@/components/ui/ErrorState'
+import { ProjectStatusBadge } from '@/components/ui/ProjectStatusBadge'
+import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 import api from '@/lib/api'
 import { Project, Task, ProjectMember, TaskStatus } from '@/types'
-import { cn, STATUS_COLORS, STATUS_LABELS, formatDate, formatRelativeTime } from '@/lib/utils'
+import { cn, STATUS_COLORS, STATUS_LABELS, formatDate } from '@/lib/utils'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
-import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, ArrowRight, List, TrendingDown } from 'lucide-react'
+import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, List, TrendingDown, LayoutDashboard, LayoutGrid, ArrowRight, Pencil } from 'lucide-react'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 
 const PIE_COLORS = ['#6b7280', '#3b82f6', '#6366f1', '#8b5cf6', '#22c55e']
 const STATUS_ORDER: TaskStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE']
@@ -23,8 +28,27 @@ export default function ProjectDetailPage({
 }) {
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const orgId = currentOrg?.id
+  const qc = useQueryClient()
+  const [showEdit, setShowEdit] = useState(false)
+  const [editForm, setEditForm] = useState({ name: '', description: '', startDate: '', endDate: '' })
 
   useProjectSocket(params.projectId, orgId ?? '')
+
+  const editMutation = useMutation({
+    mutationFn: (data: typeof editForm) =>
+      api.patch(`/organizations/${orgId}/projects/${params.projectId}`, {
+        name: data.name || undefined,
+        description: data.description || undefined,
+        startDate: data.startDate || null,
+        endDate: data.endDate || null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['project', orgId, params.projectId] })
+      setShowEdit(false)
+      toast.success('Project updated')
+    },
+    onError: () => toast.error('Failed to update project'),
+  })
 
   const { data: project, isLoading: projLoading, isError: projError, refetch } = useQuery({
     queryKey: ['project', orgId, params.projectId],
@@ -59,7 +83,7 @@ export default function ProjectDetailPage({
   })
 
   if (projLoading) return <div className="flex-1 flex items-center justify-center"><Spinner /></div>
-  if (projError) return <div className="flex-1"><Header title="Project" /><ErrorState onRetry={refetch} /></div>
+  if (projError) return <div className="flex-1"><Header title="Project" backHref={`/dashboard/${params.orgSlug}/projects`} /><ErrorState onRetry={refetch} /></div>
   if (!project) return null
 
   const stats = project.stats ?? { totalTasks: 0, completedTasks: 0, completionPercentage: 0, overdueTasks: 0 }
@@ -74,7 +98,17 @@ export default function ProjectDetailPage({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <Header title={project.name} />
+      <Header
+        title={project.name}
+        backHref={`/dashboard/${params.orgSlug}/projects`}
+        titleSuffix={
+          <ProjectStatusBadge
+            orgId={orgId!}
+            projectId={params.projectId}
+            status={project.status}
+          />
+        }
+      />
       <div className="p-6 space-y-6">
         {/* Header card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -82,10 +116,21 @@ export default function ProjectDetailPage({
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-xl font-bold text-gray-900">{project.name}</h2>
-                <span className={cn('text-xs px-2 py-1 rounded-full font-medium',
-                  project.status === 'ACTIVE' ? 'text-green-700 bg-green-50' :
-                  project.status === 'COMPLETED' ? 'text-blue-700 bg-blue-50' : 'text-gray-600 bg-gray-100'
-                )}>{project.status}</span>
+                <button
+                  onClick={() => {
+                    setEditForm({
+                      name: project.name,
+                      description: project.description ?? '',
+                      startDate: project.startDate ? project.startDate.slice(0, 10) : '',
+                      endDate: project.endDate ? project.endDate.slice(0, 10) : '',
+                    })
+                    setShowEdit(true)
+                  }}
+                  className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  title="Edit project"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
               </div>
               {project.description && <p className="text-gray-500 text-sm">{project.description}</p>}
               {(project.startDate || project.endDate) && (
@@ -95,14 +140,17 @@ export default function ProjectDetailPage({
                 </div>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 self-start">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white text-indigo-600 font-medium shadow-sm">
+                <LayoutDashboard className="w-3.5 h-3.5" /> Overview
+              </span>
               <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/list`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
-                <List className="w-4 h-4" /> List View
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors">
+                <List className="w-3.5 h-3.5" /> List
               </Link>
               <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                Kanban <ArrowRight className="w-4 h-4" />
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors">
+                <LayoutGrid className="w-3.5 h-3.5" /> Kanban
               </Link>
             </div>
           </div>
@@ -221,6 +269,59 @@ export default function ProjectDetailPage({
           </div>
         )}
       </div>
+
+      {/* Edit Project Modal */}
+      <Modal isOpen={showEdit} onClose={() => setShowEdit(false)} title="Edit Project">
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <input
+              value={editForm.name}
+              onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={editForm.description}
+              onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={editForm.startDate}
+                onChange={(e) => setEditForm((f) => ({ ...f, startDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input
+                type="date"
+                value={editForm.endDate}
+                onChange={(e) => setEditForm((f) => ({ ...f, endDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
+            <Button
+              onClick={() => editMutation.mutate(editForm)}
+              loading={editMutation.isPending}
+              disabled={!editForm.name.trim()}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

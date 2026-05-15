@@ -11,7 +11,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import api from '@/lib/api'
 import { Task, TaskStatus } from '@/types'
 import { cn, STATUS_COLORS, STATUS_LABELS, PRIORITY_COLORS, PRIORITY_DOTS, formatDate, isOverdue } from '@/lib/utils'
-import { CheckSquare, Calendar, AlertCircle, Clock } from 'lucide-react'
+import { CheckSquare, Calendar, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 
 const STATUS_FILTERS: { label: string; value: TaskStatus | '' }[] = [
@@ -102,15 +102,17 @@ export default function MyWorkPage({ params }: { params: { orgSlug: string } }) 
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                   {group.tasks.map((task, idx) => (
-                    <div key={task.id}
-                      className={cn('flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors', idx > 0 && 'border-t border-gray-50')}>
+                    <Link
+                      key={task.id}
+                      href={`/dashboard/${params.orgSlug}/projects/${task.project.id}/tasks/${task.id}`}
+                      className={cn('flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors group', idx > 0 && 'border-t border-gray-50')}
+                    >
                       <div className={cn('w-2 h-2 rounded-full flex-shrink-0', PRIORITY_DOTS[task.priority])} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          <Link href={`/dashboard/${params.orgSlug}/projects/${task.project.id}/kanban`}
-                            className="hover:text-indigo-600">{task.project.name}</Link>
+                        <p className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
+                          {task.title}
                         </p>
+                        <p className="text-xs text-gray-400 mt-0.5">{task.project.name}</p>
                       </div>
                       <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0', STATUS_COLORS[task.status])}>
                         {STATUS_LABELS[task.status]}
@@ -128,7 +130,7 @@ export default function MyWorkPage({ params }: { params: { orgSlug: string } }) 
                       {task._count && task._count.comments > 0 && (
                         <span className="text-xs text-gray-400 flex-shrink-0">{task._count.comments} comments</span>
                       )}
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

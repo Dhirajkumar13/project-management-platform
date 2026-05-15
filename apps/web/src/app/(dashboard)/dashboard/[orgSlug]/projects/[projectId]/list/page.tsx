@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useOrgStore } from '@/store/org.store'
 import { useProjectSocket } from '@/hooks/useProjectSocket'
+import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Avatar } from '@/components/ui/Avatar'
 import { Spinner } from '@/components/ui/Spinner'
@@ -11,7 +12,9 @@ import { Button } from '@/components/ui/Button'
 import api from '@/lib/api'
 import { Task, TaskStatus, Priority } from '@/types'
 import { cn, STATUS_COLORS, STATUS_LABELS, PRIORITY_COLORS, PRIORITY_DOTS, formatDate, isOverdue } from '@/lib/utils'
-import { Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown, LayoutGrid, SlidersHorizontal } from 'lucide-react'
+import { Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown, LayoutGrid, LayoutDashboard, List } from 'lucide-react'
+import { ProjectStatusBadge } from '@/components/ui/ProjectStatusBadge'
+import { SelectDropdown } from '@/components/ui/SelectDropdown'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
@@ -24,6 +27,7 @@ const STATUS_ORDER: Record<TaskStatus, number> = { BACKLOG: 0, TODO: 1, IN_PROGR
 export default function TaskListPage({ params }: { params: { orgSlug: string; projectId: string } }) {
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const qc = useQueryClient()
+  const router = useRouter()
 
   useProjectSocket(params.projectId, currentOrg?.id ?? '')
 
@@ -32,6 +36,14 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('')
   const [priorityFilter, setPriorityFilter] = useState<Priority | ''>('')
+
+  const { data: project } = useQuery({
+    queryKey: ['project', currentOrg?.id, params.projectId],
+    queryFn: () =>
+      api.get(`/organizations/${currentOrg!.id}/projects/${params.projectId}`)
+        .then((r) => r.data.data as { name: string; status: string }),
+    enabled: !!currentOrg?.id,
+  })
 
   const { data: tasks, isLoading, isError, refetch } = useQuery({
     queryKey: ['tasks-list', currentOrg?.id, params.projectId, statusFilter, priorityFilter],
@@ -116,36 +128,43 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <Header title="Task List" />
+      <Header
+        title={project?.name ?? 'Task List'}
+        subtitle={project ? 'Task List' : undefined}
+        backHref={`/dashboard/${params.orgSlug}/projects/${params.projectId}`}
+        titleSuffix={project && currentOrg?.id ? (
+          <ProjectStatusBadge orgId={currentOrg.id} projectId={params.projectId} status={project.status ?? 'ACTIVE'} />
+        ) : undefined}
+      />
       <div className="p-6">
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-4 gap-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as TaskStatus | '')}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="">All Statuses</option>
-              {(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as TaskStatus[]).map((s) => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-              ))}
-            </select>
-            <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="">All Priorities</option>
-              {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as Priority[]).map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+            <SelectDropdown
+              variant="chip"
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v as TaskStatus | '')}
+              placeholder="All Statuses"
+              options={(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as TaskStatus[]).map((s) => ({ label: STATUS_LABELS[s], value: s }))}
+            />
+            <SelectDropdown
+              variant="chip"
+              value={priorityFilter}
+              onChange={(v) => setPriorityFilter(v as Priority | '')}
+              placeholder="All Priorities"
+              options={(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as Priority[]).map((p) => ({ label: p, value: p }))}
+            />
 
             {selected.size > 0 && (
               <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
                 <span className="text-sm text-gray-500">{selected.size} selected</span>
-                <select onChange={(e) => e.target.value && bulkMove(e.target.value as TaskStatus)}
-                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option value="">Move to...</option>
-                  {(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as TaskStatus[]).map((s) => (
-                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                  ))}
-                </select>
+                <SelectDropdown
+                  variant="chip"
+                  value=""
+                  onChange={(v) => v && bulkMove(v as TaskStatus)}
+                  placeholder="Move to..."
+                  options={(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as TaskStatus[]).map((s) => ({ label: STATUS_LABELS[s], value: s }))}
+                />
                 <button onClick={() => { if (confirm(`Delete ${selected.size} tasks?`)) bulkDelete.mutate() }}
                   className="flex items-center gap-1 px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg">
                   <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -155,10 +174,24 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
-              <LayoutGrid className="w-4 h-4" /> Kanban
-            </Link>
+            {/* View switcher */}
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <Link
+                href={`/dashboard/${params.orgSlug}/projects/${params.projectId}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" /> Overview
+              </Link>
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white text-indigo-600 font-medium shadow-sm">
+                <List className="w-3.5 h-3.5" /> List
+              </span>
+              <Link
+                href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-white transition-colors"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" /> Kanban
+              </Link>
+            </div>
             <button onClick={exportCSV}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
               <Download className="w-4 h-4" /> Export CSV
@@ -209,15 +242,22 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
                   <tr><td colSpan={7} className="py-12 text-center text-gray-400 text-sm">No tasks found</td></tr>
                 ) : sorted.map((task) => (
                   <tr key={task.id}
-                    className={cn('hover:bg-gray-50 transition-colors', selected.has(task.id) && 'bg-indigo-50')}>
-                    <td className="px-4 py-3">
+                    onClick={() => router.push(`/dashboard/${params.orgSlug}/projects/${params.projectId}/tasks/${task.id}`)}
+                    className={cn('hover:bg-gray-50 transition-colors cursor-pointer', selected.has(task.id) && 'bg-indigo-50')}>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggleOne(task.id)}
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', PRIORITY_DOTS[task.priority])} />
-                        <span className="text-sm text-gray-900 truncate max-w-xs">{task.title}</span>
+                        <Link
+                          href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/tasks/${task.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-sm text-gray-900 truncate max-w-xs hover:text-indigo-700 transition-colors"
+                        >
+                          {task.title}
+                        </Link>
                       </div>
                     </td>
                     <td className="px-4 py-3">

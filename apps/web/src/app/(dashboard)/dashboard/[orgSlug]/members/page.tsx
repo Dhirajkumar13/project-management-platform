@@ -10,6 +10,7 @@ import api from '@/lib/api'
 import { OrgMember, OrgRole } from '@/types'
 import { cn, ROLE_COLORS, formatDate } from '@/lib/utils'
 import { Plus, Trash2, Mail } from 'lucide-react'
+import { SelectDropdown } from '@/components/ui/SelectDropdown'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Spinner } from '@/components/ui/Spinner'
 import { useForm } from 'react-hook-form'
@@ -35,7 +36,7 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
     enabled: !!currentOrg?.id,
   })
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<InviteForm>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<InviteForm>({
     resolver: zodResolver(inviteSchema),
   })
 
@@ -112,15 +113,12 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
                         {member.role}
                       </span>
                     ) : (
-                      <select
+                      <SelectDropdown
                         value={member.role}
-                        onChange={(e) => updateRoleMutation.mutate({ userId: member.userId, role: e.target.value as OrgRole })}
-                        className={cn('text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500', ROLE_COLORS[member.role])}
-                      >
-                        {(['ADMIN', 'MANAGER', 'MEMBER', 'VIEWER'] as OrgRole[]).map((r) => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
+                        onChange={(v) => updateRoleMutation.mutate({ userId: member.userId, role: v as OrgRole })}
+                        options={(['ADMIN', 'MANAGER', 'MEMBER', 'VIEWER'] as OrgRole[]).map((r) => ({ label: r, value: r }))}
+                        variant="chip"
+                      />
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">{formatDate(member.joinedAt)}</td>
@@ -154,12 +152,17 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-            <select {...register('role')} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="VIEWER">Viewer — read only</option>
-              <option value="MEMBER">Member — can create & edit</option>
-              <option value="MANAGER">Manager — can manage members</option>
-              <option value="ADMIN">Admin — full control except billing</option>
-            </select>
+            <SelectDropdown
+              value={watch('role') ?? 'MEMBER'}
+              onChange={(v) => setValue('role', v as InviteForm['role'])}
+              options={[
+                { label: 'Viewer — read only', value: 'VIEWER' },
+                { label: 'Member — can create & edit', value: 'MEMBER' },
+                { label: 'Manager — can manage members', value: 'MANAGER' },
+                { label: 'Admin — full control except billing', value: 'ADMIN' },
+              ]}
+              className="w-full"
+            />
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => { setShowInvite(false); reset() }}>Cancel</Button>

@@ -11,6 +11,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { Camera } from 'lucide-react'
+import { SelectDropdown } from '@/components/ui/SelectDropdown'
 
 const TIMEZONES = [
   'UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -55,7 +56,7 @@ export default function ProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
     values: { name: user?.name ?? '', timezone: user?.timezone ?? 'UTC', avatarUrl: user?.avatarUrl ?? '' },
   })

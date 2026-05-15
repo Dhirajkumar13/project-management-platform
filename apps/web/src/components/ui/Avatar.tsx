@@ -28,9 +28,9 @@ export function Avatar({ name, avatarUrl, size = 'md', className }: AvatarProps)
     <div
       aria-label={name}
       role="img"
+      style={{ backgroundColor: getAvatarColor(name) }}
       className={cn(
         'rounded-full flex items-center justify-center text-white font-medium flex-shrink-0',
-        getAvatarColor(name),
         sizeClasses[size],
         className
       )}
