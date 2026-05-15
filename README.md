@@ -379,39 +379,73 @@ SMTP_FROM="ProjectFlow <noreply@example.com>"
 
 ## Deployment
 
-### Recommended Stack (free tier)
+### Stack (fully free tier)
 
 ```
-Vercel    → Next.js frontend   (zero config, auto-deploy from GitHub)
-Railway   → Node.js API + PostgreSQL + Redis
+Vercel        → Next.js frontend
+Render        → Node.js API
+MongoDB Atlas → Database (M0 free cluster)
+Upstash       → Redis (email queue)
 ```
 
 | Platform | Hosts | Free Tier |
 |----------|-------|-----------|
 | [Vercel](https://vercel.com) | Next.js frontend | Free forever |
-| [Railway](https://railway.app) | API + PostgreSQL + Redis | $5 credit/month |
-| [Render](https://render.com) | API + PostgreSQL | Free (sleeps after inactivity) |
-| [Supabase](https://supabase.com) | PostgreSQL | Free (500 MB) |
+| [Render](https://render.com) | Node.js API | Free (sleeps after 15 min inactivity) |
+| [MongoDB Atlas](https://mongodb.com/atlas) | Database | Free (M0 — 512 MB) |
 | [Upstash](https://upstash.com) | Redis | Free (10k req/day) |
 
-### Vercel (Frontend)
+---
 
-1. Import repo → set **Root Directory** to `apps/web`
-2. Add env var: `NEXT_PUBLIC_API_URL=https://your-api.railway.app/api/v1`
-3. Deploy — Vercel auto-detects Next.js
+### Step 1 — MongoDB Atlas
 
-### Railway (Backend + DB + Redis)
+1. Create a free account at [mongodb.com/atlas](https://mongodb.com/atlas)
+2. Create a **free M0 cluster** (any region)
+3. Add a database user: **Database Access → Add New User**
+4. Allow all IPs: **Network Access → Add IP Address → Allow Access from Anywhere** (`0.0.0.0/0`)
+5. Get connection string: **Connect → Drivers** → copy the URI
+   ```
+   mongodb+srv://<user>:<password>@<cluster>.mongodb.net/project_mgmt?retryWrites=true&w=majority
+   ```
 
-1. New Project → Deploy from GitHub → Root: `apps/api`
-2. Add **PostgreSQL** and **Redis** services (Railway injects `DATABASE_URL` and `REDIS_URL` automatically)
-3. After first deploy:
+### Step 2 — Upstash Redis
+
+1. Create a free account at [upstash.com](https://upstash.com)
+2. Create a **Redis database** (any region, free tier)
+3. Copy the **REST URL** — use the `rediss://` connection string shown in the dashboard
+
+### Step 3 — Render (Backend API)
+
+1. Create account at [render.com](https://render.com)
+2. **New → Web Service** → connect your GitHub repo
+3. Set:
+   - **Root Directory**: `apps/api`
+   - **Build Command**: `npm install && npx prisma generate && npm run build`
+   - **Start Command**: `node dist/index.js`
+4. Add environment variables (from `.env.example`):
+   | Key | Value |
+   |-----|-------|
+   | `DATABASE_URL` | MongoDB Atlas connection string |
+   | `REDIS_URL` | Upstash Redis connection string |
+   | `JWT_SECRET` | Random 32+ char string |
+   | `JWT_REFRESH_SECRET` | Random 32+ char string |
+   | `FRONTEND_URL` | Your Vercel URL (add after step 4) |
+   | `NODE_ENV` | `production` |
+5. Deploy → copy your Render API URL (e.g. `https://projectflow-api.onrender.com`)
+6. Seed demo data via Render Shell:
    ```bash
-   npx prisma migrate deploy
    npx ts-node -r tsconfig-paths/register prisma/seed.ts
    ```
 
-### Render (Alternative — fully free)
+### Step 4 — Vercel (Frontend)
 
-1. New Web Service → Root: `apps/api` → Build: `npm install && npm run build` → Start: `node dist/index.js`
-2. Add a PostgreSQL database
-3. Note: free tier sleeps after 15 min of inactivity (~30s cold start)
+1. Create account at [vercel.com](https://vercel.com)
+2. **New Project** → Import your GitHub repo
+3. Set **Root Directory** to `apps/web`
+4. Add environment variable:
+   | Key | Value |
+   |-----|-------|
+   | `NEXT_PUBLIC_API_URL` | `https://projectflow-api.onrender.com/api/v1` |
+5. Deploy — Vercel auto-detects Next.js
+
+> **Note:** Render free tier sleeps after 15 min of inactivity. First request after sleep takes ~30s. Upgrade to a paid plan to keep it always-on.

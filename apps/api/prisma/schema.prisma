@@ -3,21 +3,21 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String
-  password  String
-  avatarUrl String?
+  id                String    @id @default(cuid()) @map("_id")
+  email             String    @unique
+  name              String
+  password          String
+  avatarUrl         String?
   timezone          String    @default("UTC")
   notificationPrefs Json?
   createdAt         DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
 
   refreshTokens       RefreshToken[]
   passwordResets      PasswordReset[]
@@ -32,26 +32,26 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   token     String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
 
 model PasswordReset {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   token     String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 
 model Organization {
-  id          String    @id @default(cuid())
+  id          String    @id @default(cuid()) @map("_id")
   name        String
   slug        String    @unique
   logoUrl     String?
@@ -77,11 +77,11 @@ enum OrgRole {
 }
 
 model OrganizationMember {
-  id             String       @id @default(cuid())
+  id             String       @id @default(cuid()) @map("_id")
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id])
   userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
   role           OrgRole      @default(MEMBER)
   joinedAt       DateTime     @default(now())
 
@@ -91,9 +91,9 @@ model OrganizationMember {
 }
 
 model OrganizationInvite {
-  id             String       @id @default(cuid())
+  id             String       @id @default(cuid()) @map("_id")
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id])
   email          String
   role           OrgRole      @default(MEMBER)
   token          String       @unique
@@ -121,9 +121,9 @@ enum ProjectRole {
 }
 
 model Project {
-  id             String        @id @default(cuid())
+  id             String        @id @default(cuid()) @map("_id")
   organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization  @relation(fields: [organizationId], references: [id])
   name           String
   description    String?
   status         ProjectStatus @default(ACTIVE)
@@ -141,11 +141,11 @@ model Project {
 }
 
 model ProjectMember {
-  id        String      @id @default(cuid())
+  id        String      @id @default(cuid()) @map("_id")
   projectId String
-  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project     @relation(fields: [projectId], references: [id])
   userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
   role      ProjectRole @default(MEMBER)
   joinedAt  DateTime    @default(now())
 
@@ -170,9 +170,9 @@ enum Priority {
 }
 
 model Task {
-  id          String     @id @default(cuid())
+  id          String     @id @default(cuid()) @map("_id")
   projectId   String
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project    @relation(fields: [projectId], references: [id])
   title       String
   description String?
   status      TaskStatus @default(BACKLOG)
@@ -199,9 +199,9 @@ model Task {
 }
 
 model Subtask {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task      Task     @relation(fields: [taskId], references: [id])
   title     String
   completed Boolean  @default(false)
   position  Int      @default(0)
@@ -209,11 +209,11 @@ model Subtask {
 }
 
 model TaskAssignee {
-  id         String   @id @default(cuid())
+  id         String   @id @default(cuid()) @map("_id")
   taskId     String
-  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task       Task     @relation(fields: [taskId], references: [id])
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
   assignedAt DateTime @default(now())
 
   @@unique([taskId, userId])
@@ -221,9 +221,9 @@ model TaskAssignee {
 }
 
 model Label {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id])
   name      String
   color     String   @default("#6366f1")
   createdAt DateTime @default(now())
@@ -232,20 +232,21 @@ model Label {
 }
 
 model TaskLabel {
+  id      String @id @default(cuid()) @map("_id")
   taskId  String
-  task    Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task    Task   @relation(fields: [taskId], references: [id])
   labelId String
-  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id])
 
-  @@id([taskId, labelId])
+  @@unique([taskId, labelId])
 }
 
 model TaskComment {
-  id        String    @id @default(cuid())
+  id        String    @id @default(cuid()) @map("_id")
   taskId    String
-  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task      Task      @relation(fields: [taskId], references: [id])
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
   content   String
   mentions  String[]
   createdAt DateTime  @default(now())
@@ -256,9 +257,9 @@ model TaskComment {
 }
 
 model TaskAttachment {
-  id           String   @id @default(cuid())
+  id           String   @id @default(cuid()) @map("_id")
   taskId       String
-  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task         Task     @relation(fields: [taskId], references: [id])
   name         String
   url          String
   size         Int
@@ -269,11 +270,11 @@ model TaskAttachment {
 }
 
 model TaskActivity {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task      Task     @relation(fields: [taskId], references: [id])
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
   action    String
   oldValue  String?
   newValue  String?
@@ -283,20 +284,21 @@ model TaskActivity {
 }
 
 model TaskDependency {
+  id              String @id @default(cuid()) @map("_id")
   blockingTaskId  String
   blockedByTaskId String
-  blockingTask    Task   @relation("blocking", fields: [blockingTaskId], references: [id], onDelete: Cascade)
-  blockedByTask   Task   @relation("blockedBy", fields: [blockedByTaskId], references: [id], onDelete: Cascade)
+  blockingTask    Task   @relation("blocking", fields: [blockingTaskId], references: [id])
+  blockedByTask   Task   @relation("blockedBy", fields: [blockedByTaskId], references: [id])
 
-  @@id([blockingTaskId, blockedByTaskId])
+  @@unique([blockingTaskId, blockedByTaskId])
 }
 
 model Notification {
-  id             String        @id @default(cuid())
+  id             String        @id @default(cuid()) @map("_id")
   userId         String
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id])
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [organizationId], references: [id])
   type           String
   title          String
   message        String
@@ -308,11 +310,11 @@ model Notification {
 }
 
 model AuditLog {
-  id             String       @id @default(cuid())
+  id             String       @id @default(cuid()) @map("_id")
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id])
   userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
   action         String
   entityType     String
   entityId       String
@@ -324,9 +326,9 @@ model AuditLog {
 }
 
 model Webhook {
-  id             String       @id @default(cuid())
+  id             String       @id @default(cuid()) @map("_id")
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id])
   name           String
   url            String
   secret         String
@@ -341,9 +343,9 @@ model Webhook {
 }
 
 model WebhookDelivery {
-  id         String   @id @default(cuid())
+  id         String   @id @default(cuid()) @map("_id")
   webhookId  String
-  webhook    Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  webhook    Webhook  @relation(fields: [webhookId], references: [id])
   event      String
   payload    Json
   statusCode Int?
