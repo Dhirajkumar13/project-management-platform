@@ -4,6 +4,11 @@ import { formatDistanceToNow, format, isPast } from 'date-fns'
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs))
 
+import type { OrgRole } from '@/types'
+const ROLE_HIERARCHY: Record<OrgRole, number> = { VIEWER: 0, MEMBER: 1, MANAGER: 2, ADMIN: 3, OWNER: 4 }
+export const hasOrgRole = (userRole: OrgRole | undefined, minRole: OrgRole): boolean =>
+  userRole !== undefined && ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[minRole]
+
 export const formatDate = (date: string | Date) => format(new Date(date), 'MMM d, yyyy')
 export const formatRelativeTime = (date: string | Date) =>
   formatDistanceToNow(new Date(date), { addSuffix: true })

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { useOrgStore } from '@/store/org.store'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
@@ -11,7 +12,7 @@ import { Modal } from '@/components/ui/Modal'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, CheckCircle2, XCircle, Clock } from 'lucide-react'
-import { cn, formatRelativeTime } from '@/lib/utils'
+import { cn, formatRelativeTime, hasOrgRole } from '@/lib/utils'
 
 const orgSchema = z.object({ name: z.string().min(2, 'Name must be at least 2 characters') })
 type OrgFormData = z.infer<typeof orgSchema>
@@ -103,11 +104,14 @@ function WebhookDeliveriesModal({ webhookId, orgId, onClose }: { webhookId: stri
 }
 
 export default function OrgSettingsPage() {
-  const { currentOrg, setCurrentOrg } = useOrgStore()
+  const { currentOrg, setCurrentOrg, clearOrg } = useOrgStore()
   const qc = useQueryClient()
+  const router = useRouter()
   const [showWebhookModal, setShowWebhookModal] = useState(false)
   const [deliveriesWebhookId, setDeliveriesWebhookId] = useState<string | null>(null)
   const [auditPage, setAuditPage] = useState(1)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmName, setDeleteConfirmName] = useState('')
   const AUDIT_LIMIT = 20
 
   const { register: registerOrg, handleSubmit: handleOrgSubmit, formState: { errors: orgErrors, isSubmitting: orgSubmitting } } = useForm<OrgFormData>({
@@ -126,6 +130,17 @@ export default function OrgSettingsPage() {
     mutationFn: (data: OrgFormData) => api.patch(`/organizations/${currentOrg!.id}`, data),
     onSuccess: (res) => { setCurrentOrg({ ...currentOrg!, name: res.data.data.name }); toast.success('Organization updated!') },
     onError: () => toast.error('Failed to update organization'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/organizations/${currentOrg!.id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orgs'] })
+      clearOrg()
+      toast.success('Organization deleted')
+      router.push('/dashboard')
+    },
+    onError: () => toast.error('Failed to delete organization'),
   })
 
   const { data: webhooks } = useQuery({
@@ -213,7 +228,11 @@ export default function OrgSettingsPage() {
                 className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm bg-gray-50 dark:bg-surface-elevated text-gray-500" />
               <p className="text-xs text-gray-400 mt-1">Slug cannot be changed after creation</p>
             </div>
-            <Button type="submit" loading={orgSubmitting || updateMutation.isPending}>Save Changes</Button>
+            {hasOrgRole(currentOrg?.role, 'ADMIN') ? (
+              <Button type="submit" loading={orgSubmitting || updateMutation.isPending}>Save Changes</Button>
+            ) : (
+              <p className="text-xs text-gray-400 dark:text-zinc-500">Only Admins and above can rename the organization.</p>
+            )}
           </form>
         </div>
 
@@ -334,16 +353,19 @@ export default function OrgSettingsPage() {
           )}
         </div>
 
-        {/* Danger Zone */}
-        <div className="bg-white dark:bg-surface-card rounded-xl shadow-sm border border-red-100 dark:border-red-900/40 p-6">
-          <h2 className="text-lg font-semibold text-red-700 mb-2">Danger Zone</h2>
-          <p className="text-gray-500 dark:text-zinc-400 text-sm mb-4">
-            Deleting your organization will permanently remove all projects, tasks, and members. This action cannot be undone.
-          </p>
-          <Button variant="danger" onClick={() => toast.error('Contact support to delete your organization')}>
-            Delete Organization
-          </Button>
-        </div>
+        {/* Danger Zone — OWNER only */}
+        {currentOrg?.role === 'OWNER' && (
+          <div className="bg-white dark:bg-surface-card rounded-xl shadow-sm border border-red-200 dark:border-red-900/40 p-6">
+            <h2 className="text-base font-semibold text-red-600 mb-1">Danger Zone</h2>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4">
+              Permanently deletes this organization including all projects, tasks, members, and data. This cannot be undone.
+            </p>
+            <Button variant="danger" onClick={() => { setDeleteConfirmName(''); setShowDeleteModal(true) }}>
+              <Trash2 className="w-4 h-4" />
+              Delete Organization
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Create Webhook Modal */}
@@ -391,6 +413,32 @@ export default function OrgSettingsPage() {
           onClose={() => setDeliveriesWebhookId(null)}
         />
       )}
+
+      {/* Delete org confirmation modal */}
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Organization">
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-600 dark:text-zinc-300">
+            This will permanently delete <span className="font-semibold text-gray-900 dark:text-white">{currentOrg?.name}</span> and all its data. Type the organization name to confirm.
+          </p>
+          <input
+            value={deleteConfirmName}
+            onChange={(e) => setDeleteConfirmName(e.target.value)}
+            placeholder={currentOrg?.name}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-white/[0.1] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-surface-elevated dark:text-white"
+          />
+          <div className="flex justify-end gap-3 pt-1">
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
+            <Button
+              variant="danger"
+              disabled={deleteConfirmName !== currentOrg?.name || deleteMutation.isPending}
+              loading={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
+            >
+              Delete permanently
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

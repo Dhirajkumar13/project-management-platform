@@ -12,7 +12,8 @@ import {
   LayoutDashboard, FolderOpen, Users, Settings, LogOut,
   ChevronDown, Plus, CheckSquare, User, X
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
 interface SidebarProps {
@@ -26,6 +27,29 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { user, logout: logoutStore } = useAuthStore()
   const { currentOrg, setCurrentOrg } = useOrgStore()
   const [showOrgPicker, setShowOrgPicker] = useState(false)
+  const [showNewOrgModal, setShowNewOrgModal] = useState(false)
+  const [newOrgName, setNewOrgName] = useState('')
+  const newOrgInputRef = useRef<HTMLInputElement>(null)
+  const qc = useQueryClient()
+
+  const createOrgMutation = useMutation({
+    mutationFn: (name: string) =>
+      api.post('/organizations', { name }).then((r) => r.data.data as Organization),
+    onSuccess: (org) => {
+      qc.invalidateQueries({ queryKey: ['orgs'] })
+      setCurrentOrg(org)
+      setShowNewOrgModal(false)
+      setNewOrgName('')
+      router.push(`/dashboard/${org.slug}`)
+      toast.success(`"${org.name}" created`)
+    },
+    onError: () => toast.error('Failed to create organization'),
+  })
+
+  useEffect(() => {
+    if (showNewOrgModal) setTimeout(() => newOrgInputRef.current?.focus(), 50)
+  }, [showNewOrgModal])
+
   const { data: orgsData } = useQuery({
     queryKey: ['orgs'],
     queryFn: () => api.get('/organizations').then((r) => r.data.data as Organization[]),
@@ -88,7 +112,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             {orgsData?.map((org) => (
               <button
                 key={org.id}
-                onClick={() => { setCurrentOrg(org); setShowOrgPicker(false) }}
+                onClick={() => { setCurrentOrg(org); setShowOrgPicker(false); router.push(`/dashboard/${org.slug}`) }}
                 className={cn(
                   'w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-white/[0.05] transition-colors',
                   currentOrg?.id === org.id ? 'text-zinc-100 bg-white/[0.08]' : 'text-zinc-400'
@@ -102,12 +126,49 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               </button>
             ))}
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => { setShowOrgPicker(false); setShowNewOrgModal(true) }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] border-t border-white/5 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               New organization
             </button>
+          </div>
+        )}
+
+        {/* New org inline modal */}
+        {showNewOrgModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px]" onClick={() => setShowNewOrgModal(false)}>
+            <div className="bg-surface-elevated border border-white/[0.08] rounded-xl shadow-2xl w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-sm font-semibold text-zinc-100 mb-1">New organization</h2>
+              <p className="text-xs text-zinc-500 mb-4">Create a separate workspace for a different team or company.</p>
+              <input
+                ref={newOrgInputRef}
+                value={newOrgName}
+                onChange={(e) => setNewOrgName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newOrgName.trim().length >= 2) createOrgMutation.mutate(newOrgName.trim())
+                  if (e.key === 'Escape') setShowNewOrgModal(false)
+                }}
+                placeholder="Organization name"
+                maxLength={60}
+                className="w-full px-3 py-2 rounded-lg bg-surface-card border border-white/[0.1] text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-white/20 mb-4"
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => { setShowNewOrgModal(false); setNewOrgName('') }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => createOrgMutation.mutate(newOrgName.trim())}
+                  disabled={newOrgName.trim().length < 2 || createOrgMutation.isPending}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-zinc-900 hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {createOrgMutation.isPending ? 'Creating…' : 'Create'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { useOrgStore } from '@/store/org.store'
 import { useThemeStore, resolveTheme } from '@/store/theme.store'
 import { useProjectSocket } from '@/hooks/useProjectSocket'
@@ -13,9 +14,9 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import api from '@/lib/api'
 import { Project, Task, ProjectMember, TaskStatus } from '@/types'
-import { cn, STATUS_COLORS, STATUS_LABELS, formatDate } from '@/lib/utils'
+import { cn, STATUS_COLORS, STATUS_LABELS, formatDate, hasOrgRole } from '@/lib/utils'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
-import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, List, TrendingDown, LayoutDashboard, LayoutGrid, ArrowRight, Pencil } from 'lucide-react'
+import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, List, TrendingDown, LayoutDashboard, LayoutGrid, ArrowRight, Pencil, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
@@ -29,10 +30,14 @@ export default function ProjectDetailPage({
 }) {
   const currentOrg = useOrgStore((s) => s.currentOrg)
   const orgId = currentOrg?.id
+  const role = currentOrg?.role
   const isDark = resolveTheme(useThemeStore((s) => s.preference)) === 'dark'
+  const router = useRouter()
   const qc = useQueryClient()
   const [showEdit, setShowEdit] = useState(false)
   const [editForm, setEditForm] = useState({ name: '', description: '', startDate: '', endDate: '' })
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
 
   useProjectSocket(params.projectId, orgId ?? '')
 
@@ -50,6 +55,16 @@ export default function ProjectDetailPage({
       toast.success('Project updated')
     },
     onError: () => toast.error('Failed to update project'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/organizations/${orgId}/projects/${params.projectId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['projects', orgId] })
+      toast.success('Project deleted')
+      router.push(`/dashboard/${params.orgSlug}/projects`)
+    },
+    onError: () => toast.error('Failed to delete project'),
   })
 
   const { data: project, isLoading: projLoading, isError: projError, refetch } = useQuery({
@@ -118,21 +133,32 @@ export default function ProjectDetailPage({
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
-                <button
-                  onClick={() => {
-                    setEditForm({
-                      name: project.name,
-                      description: project.description ?? '',
-                      startDate: project.startDate ? project.startDate.slice(0, 10) : '',
-                      endDate: project.endDate ? project.endDate.slice(0, 10) : '',
-                    })
-                    setShowEdit(true)
-                  }}
-                  className="p-1 text-gray-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                  title="Edit project"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
+                {hasOrgRole(role, 'MEMBER') && (
+                  <button
+                    onClick={() => {
+                      setEditForm({
+                        name: project.name,
+                        description: project.description ?? '',
+                        startDate: project.startDate ? project.startDate.slice(0, 10) : '',
+                        endDate: project.endDate ? project.endDate.slice(0, 10) : '',
+                      })
+                      setShowEdit(true)
+                    }}
+                    className="p-1 text-gray-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    title="Edit project"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {hasOrgRole(role, 'MANAGER') && (
+                  <button
+                    onClick={() => { setDeleteConfirm(''); setShowDelete(true) }}
+                    className="p-1 text-gray-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                    title="Delete project"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
               {project.description && <p className="text-gray-500 dark:text-zinc-400 text-sm">{project.description}</p>}
               {(project.startDate || project.endDate) && (
@@ -367,6 +393,32 @@ export default function ProjectDetailPage({
               disabled={!editForm.name.trim()}
             >
               Save Changes
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Project Modal */}
+      <Modal isOpen={showDelete} onClose={() => setShowDelete(false)} title="Delete Project">
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-600 dark:text-zinc-300">
+            This will permanently delete <span className="font-semibold text-gray-900 dark:text-white">{project.name}</span> and all its tasks, comments, and attachments. Type the project name to confirm.
+          </p>
+          <input
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder={project.name}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-elevated dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+          <div className="flex justify-end gap-3 pt-1">
+            <Button variant="outline" onClick={() => setShowDelete(false)}>Cancel</Button>
+            <Button
+              variant="danger"
+              disabled={deleteConfirm !== project.name || deleteMutation.isPending}
+              loading={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
+            >
+              Delete permanently
             </Button>
           </div>
         </div>
