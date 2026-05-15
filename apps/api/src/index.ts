@@ -28,6 +28,7 @@ import notificationRoutes from '@/routes/notification.routes'
 import searchRoutes from '@/routes/search.routes'
 import dashboardRoutes from '@/routes/dashboard.routes'
 import myTasksRoutes from '@/routes/my-tasks.routes'
+import webhookRoutes from '@/routes/webhook.routes'
 
 const app = express()
 const httpServer = createServer(app)
@@ -63,6 +64,7 @@ app.use('/api/v1/notifications', notificationRoutes)
 app.use('/api/v1/search', searchRoutes)
 app.use('/api/v1/dashboard', dashboardRoutes)
 app.use('/api/v1/my-tasks', myTasksRoutes)
+app.use('/api/v1/organizations/:orgId/webhooks', webhookRoutes)
 
 app.use(errorMiddleware)
 

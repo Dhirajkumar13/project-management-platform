@@ -49,12 +49,12 @@ export const projectController = {
   },
 
   update: async (req: AuthenticatedRequest, res: Response) => {
-    const project = await projectService.update(req.params.projectId, req.params.orgId, req.body)
+    const project = await projectService.update(req.params.projectId, req.params.orgId, req.user!.id, req.body)
     successResponse(res, project, 200, 'Project updated')
   },
 
   delete: async (req: AuthenticatedRequest, res: Response) => {
-    await projectService.delete(req.params.projectId, req.params.orgId)
+    await projectService.delete(req.params.projectId, req.params.orgId, req.user!.id)
     successResponse(res, null, 200, 'Project deleted')
   },
 

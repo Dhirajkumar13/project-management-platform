@@ -5,6 +5,7 @@ import { sendInviteEmail } from '@/utils/email'
 import { OrgRole } from '@prisma/client'
 import { hasRole, ROLE_HIERARCHY } from '@/types'
 import { PaginationParams } from '@/types'
+import { webhookService } from '@/services/webhook.service'
 
 export const organizationService = {
   create: async (userId: string, data: { name: string }) => {
@@ -98,7 +99,17 @@ export const organizationService = {
       throw new AppError('Cannot assign a role equal to or higher than your own', 403)
     }
 
-    return organizationRepository.updateMemberRole(orgId, targetUserId, newRole)
+    const updated = await organizationRepository.updateMemberRole(orgId, targetUserId, newRole)
+    await organizationRepository.createAuditLog({
+      organizationId: orgId,
+      userId: requestingUserId,
+      action: 'member.role_changed',
+      entityType: 'member',
+      entityId: targetUserId,
+      metadata: { oldRole: target.role, newRole },
+    })
+    webhookService.trigger(orgId, 'member.role_changed', { userId: targetUserId, oldRole: target.role, newRole }).catch(() => {})
+    return updated
   },
 
   removeMember: async (orgId: string, targetUserId: string, requestingUserId: string) => {
@@ -107,6 +118,15 @@ export const organizationService = {
     if (target.role === 'OWNER') throw new AppError('Cannot remove organization owner', 403)
 
     await organizationRepository.removeMember(orgId, targetUserId)
+    await organizationRepository.createAuditLog({
+      organizationId: orgId,
+      userId: requestingUserId,
+      action: 'member.removed',
+      entityType: 'member',
+      entityId: targetUserId,
+      metadata: { removedRole: target.role },
+    })
+    webhookService.trigger(orgId, 'member.removed', { userId: targetUserId }).catch(() => {})
   },
 
   getAuditLog: async (orgId: string, params: PaginationParams) => {

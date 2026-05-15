@@ -4,6 +4,7 @@ import { TaskStatus, Priority } from '@prisma/client'
 import { PaginationParams } from '@/types'
 import { emitToProject, emitToTask, emitToUser } from '@/config/socket'
 import { prisma } from '@/config/database'
+import { webhookService } from '@/services/webhook.service'
 
 export const taskService = {
   create: async (projectId: string, userId: string, data: {
@@ -48,6 +49,8 @@ export const taskService = {
     await taskRepository.createActivity({ taskId: task.id, userId, action: 'created task' })
     const fullTask = await taskRepository.findById(task.id, projectId)
     emitToProject(projectId, 'task:created', fullTask)
+    const proj = await prisma.project.findUnique({ where: { id: projectId }, select: { organizationId: true } })
+    if (proj) webhookService.trigger(proj.organizationId, 'task.created', { taskId: task.id, projectId, title: data.title }).catch(() => {})
     return fullTask
   },
 
@@ -111,6 +114,8 @@ export const taskService = {
     await taskRepository.softDelete(taskId)
     await taskRepository.createActivity({ taskId, userId, action: 'deleted task' })
     emitToProject(projectId, 'task:deleted', { taskId, projectId })
+    const proj = await prisma.project.findUnique({ where: { id: projectId }, select: { organizationId: true } })
+    if (proj) webhookService.trigger(proj.organizationId, 'task.deleted', { taskId, projectId, title: task.title }).catch(() => {})
   },
 
   moveTask: async (taskId: string, projectId: string, userId: string, status: TaskStatus, position: number) => {

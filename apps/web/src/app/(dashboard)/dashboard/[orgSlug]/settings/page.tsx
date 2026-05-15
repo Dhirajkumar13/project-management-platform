@@ -1,87 +1,396 @@
 'use client'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOrgStore } from '@/store/org.store'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { cn, formatRelativeTime } from '@/lib/utils'
 
-const schema = z.object({ name: z.string().min(2, 'Name must be at least 2 characters') })
-type FormData = z.infer<typeof schema>
+const orgSchema = z.object({ name: z.string().min(2, 'Name must be at least 2 characters') })
+type OrgFormData = z.infer<typeof orgSchema>
+
+const webhookSchema = z.object({
+  name: z.string().min(1, 'Name required'),
+  url: z.string().url('Must be a valid HTTPS URL'),
+  events: z.array(z.string()).min(1, 'Select at least one event'),
+})
+type WebhookFormData = z.infer<typeof webhookSchema>
+
+const ALL_EVENTS = [
+  { value: 'task.created', label: 'Task Created' },
+  { value: 'task.updated', label: 'Task Updated' },
+  { value: 'task.deleted', label: 'Task Deleted' },
+  { value: 'task.moved', label: 'Task Moved' },
+  { value: 'comment.created', label: 'Comment Posted' },
+  { value: 'project.created', label: 'Project Created' },
+  { value: 'project.updated', label: 'Project Updated' },
+  { value: 'project.deleted', label: 'Project Deleted' },
+  { value: 'member.added', label: 'Member Added' },
+  { value: 'member.removed', label: 'Member Removed' },
+  { value: 'member.role_changed', label: 'Member Role Changed' },
+]
+
+interface Webhook {
+  id: string
+  name: string
+  url: string
+  secret: string
+  events: string[]
+  active: boolean
+  createdAt: string
+  _count: { deliveries: number }
+}
+
+interface AuditEntry {
+  id: string
+  action: string
+  entityType: string
+  entityId: string
+  metadata: Record<string, unknown> | null
+  createdAt: string
+  user: { id: string; name: string; email: string; avatarUrl: string | null }
+}
+
+interface WebhookDelivery {
+  id: string
+  event: string
+  statusCode: number | null
+  success: boolean
+  error: string | null
+  createdAt: string
+}
+
+function WebhookDeliveriesModal({ webhookId, orgId, onClose }: { webhookId: string; orgId: string; onClose: () => void }) {
+  const { data: deliveries, isLoading } = useQuery({
+    queryKey: ['webhook-deliveries', webhookId],
+    queryFn: () => api.get(`/organizations/${orgId}/webhooks/${webhookId}/deliveries`).then(r => r.data.data as WebhookDelivery[]),
+  })
+
+  return (
+    <Modal isOpen title="Delivery History" onClose={onClose} size="lg">
+      <div className="p-6">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />)}
+          </div>
+        ) : !deliveries?.length ? (
+          <p className="text-center text-gray-400 py-8">No deliveries yet</p>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {deliveries.map((d) => (
+              <div key={d.id} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-100 text-sm">
+                {d.success
+                  ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  : <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
+                <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{d.event}</span>
+                {d.statusCode && <span className={cn('text-xs font-medium', d.success ? 'text-green-600' : 'text-red-600')}>{d.statusCode}</span>}
+                {d.error && <span className="text-xs text-red-500 truncate flex-1">{d.error}</span>}
+                <span className="ml-auto text-xs text-gray-400 flex-shrink-0">{formatRelativeTime(d.createdAt)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  )
+}
 
 export default function OrgSettingsPage() {
   const { currentOrg, setCurrentOrg } = useOrgStore()
+  const qc = useQueryClient()
+  const [showWebhookModal, setShowWebhookModal] = useState(false)
+  const [deliveriesWebhookId, setDeliveriesWebhookId] = useState<string | null>(null)
+  const [auditPage, setAuditPage] = useState(1)
+  const AUDIT_LIMIT = 20
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
-    resolver: zodResolver(schema),
+  const { register: registerOrg, handleSubmit: handleOrgSubmit, formState: { errors: orgErrors, isSubmitting: orgSubmitting } } = useForm<OrgFormData>({
+    resolver: zodResolver(orgSchema),
     values: { name: currentOrg?.name ?? '' },
   })
 
+  const { register: registerWebhook, handleSubmit: handleWebhookSubmit, reset: resetWebhook, watch, setValue, formState: { errors: whErrors, isSubmitting: whSubmitting } } = useForm<WebhookFormData>({
+    resolver: zodResolver(webhookSchema),
+    defaultValues: { events: [] },
+  })
+
+  const selectedEvents = watch('events') ?? []
+
   const updateMutation = useMutation({
-    mutationFn: (data: FormData) => api.patch(`/organizations/${currentOrg!.id}`, data),
-    onSuccess: (res) => {
-      setCurrentOrg({ ...currentOrg!, name: res.data.data.name })
-      toast.success('Organization updated!')
-    },
+    mutationFn: (data: OrgFormData) => api.patch(`/organizations/${currentOrg!.id}`, data),
+    onSuccess: (res) => { setCurrentOrg({ ...currentOrg!, name: res.data.data.name }); toast.success('Organization updated!') },
     onError: () => toast.error('Failed to update organization'),
   })
+
+  const { data: webhooks } = useQuery({
+    queryKey: ['webhooks', currentOrg?.id],
+    queryFn: () => api.get(`/organizations/${currentOrg!.id}/webhooks`).then(r => r.data.data as Webhook[]),
+    enabled: !!currentOrg?.id,
+  })
+
+  const { data: auditData } = useQuery({
+    queryKey: ['audit-log', currentOrg?.id, auditPage],
+    queryFn: () => api.get(`/organizations/${currentOrg!.id}/audit-log`, { params: { page: auditPage, limit: AUDIT_LIMIT } })
+      .then(r => r.data as { data: { items: AuditEntry[]; total: number } }),
+    enabled: !!currentOrg?.id,
+  })
+
+  const createWebhookMutation = useMutation({
+    mutationFn: (data: WebhookFormData) => api.post(`/organizations/${currentOrg!.id}/webhooks`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['webhooks', currentOrg?.id] })
+      setShowWebhookModal(false)
+      resetWebhook()
+      toast.success('Webhook created!')
+    },
+    onError: () => toast.error('Failed to create webhook'),
+  })
+
+  const deleteWebhookMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/organizations/${currentOrg!.id}/webhooks/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['webhooks', currentOrg?.id] }); toast.success('Webhook deleted') },
+    onError: () => toast.error('Failed to delete webhook'),
+  })
+
+  const toggleWebhookMutation = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      api.patch(`/organizations/${currentOrg!.id}/webhooks/${id}`, { active }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['webhooks', currentOrg?.id] }),
+    onError: () => toast.error('Failed to update webhook'),
+  })
+
+  const rotateSecretMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/organizations/${currentOrg!.id}/webhooks/${id}/rotate-secret`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['webhooks', currentOrg?.id] }); toast.success('Secret rotated') },
+    onError: () => toast.error('Failed to rotate secret'),
+  })
+
+  const toggleEvent = (event: string) => {
+    const current = selectedEvents
+    setValue('events', current.includes(event) ? current.filter(e => e !== event) : [...current, event])
+  }
+
+  const auditItems = auditData?.data.items ?? []
+  const auditTotal = auditData?.data.total ?? 0
+  const auditPages = Math.ceil(auditTotal / AUDIT_LIMIT)
+
+  const actionIcon = (action: string) => {
+    if (action.includes('created') || action.includes('added')) return '+'
+    if (action.includes('deleted') || action.includes('removed')) return '−'
+    return '~'
+  }
+
+  const actionColor = (action: string) => {
+    if (action.includes('created') || action.includes('added')) return 'bg-green-100 text-green-700'
+    if (action.includes('deleted') || action.includes('removed')) return 'bg-red-100 text-red-700'
+    return 'bg-blue-100 text-blue-700'
+  }
 
   return (
     <div className="flex-1 overflow-y-auto">
       <Header title="Organization Settings" />
-      <div className="p-6 max-w-2xl space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">General Settings</h2>
-          <form onSubmit={handleSubmit((d) => updateMutation.mutate(d))} className="space-y-4">
+      <div className="p-6 max-w-3xl space-y-6">
+
+        {/* General */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">General Settings</h2>
+          <form onSubmit={handleOrgSubmit((d) => updateMutation.mutate(d))} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
-              <input {...register('name')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Organization Name</label>
+              <input {...registerOrg('name')}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white" />
+              {orgErrors.name && <p className="text-red-500 text-xs mt-1">{orgErrors.name.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Slug</label>
               <input value={currentOrg?.slug ?? ''} disabled
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500" />
+                className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm bg-gray-50 dark:bg-slate-900 text-gray-500" />
               <p className="text-xs text-gray-400 mt-1">Slug cannot be changed after creation</p>
             </div>
-            <Button type="submit" loading={isSubmitting || updateMutation.isPending}>Save Changes</Button>
+            <Button type="submit" loading={orgSubmitting || updateMutation.isPending}>Save Changes</Button>
           </form>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Billing Information</h2>
-          <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 space-y-2">
-            <div className="flex justify-between">
-              <span className="font-medium">Plan</span>
-              <span className="text-indigo-600 font-medium">Pro</span>
+        {/* Webhooks */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Webhooks</h2>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Receive HTTP POST notifications when events occur in your organization.</p>
             </div>
-            <div className="flex justify-between">
-              <span className="font-medium">Seats</span>
-              <span>10 / 10 used</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-medium">Next billing</span>
-              <span>June 1, 2026</span>
-            </div>
+            <Button onClick={() => setShowWebhookModal(true)} size="sm">
+              <Plus className="w-4 h-4" /> Add Webhook
+            </Button>
           </div>
-          <Button variant="outline" className="mt-4">Manage Billing</Button>
+
+          {!webhooks?.length ? (
+            <div className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl py-10 text-center">
+              <p className="text-gray-400 text-sm">No webhooks configured yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {webhooks.map((wh) => (
+                <div key={wh.id} className="border border-gray-100 dark:border-slate-700 rounded-xl p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm text-gray-900 dark:text-white">{wh.name}</span>
+                        <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', wh.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500')}>
+                          {wh.active ? 'Active' : 'Paused'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 font-mono truncate">{wh.url}</p>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {wh.events.map(e => (
+                          <span key={e} className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded">{e}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => setDeliveriesWebhookId(wh.id)}
+                        title="View delivery history"
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-xs">
+                        <Clock className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => { if (confirm('Rotate the signing secret? This will invalidate the current secret.')) rotateSecretMutation.mutate(wh.id) }}
+                        title="Rotate secret"
+                        className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => toggleWebhookMutation.mutate({ id: wh.id, active: !wh.active })}
+                        className="px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                        {wh.active ? 'Pause' : 'Enable'}
+                      </button>
+                      <button onClick={() => { if (confirm('Delete this webhook?')) deleteWebhookMutation.mutate(wh.id) }}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-50 dark:border-slate-700/50 flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Signing secret:</span>
+                    <code className="text-xs font-mono text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900 px-2 py-0.5 rounded select-all">{wh.secret}</code>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-red-100 p-6">
+        {/* Audit Log */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Audit Log</h2>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">A record of all significant actions taken within your organization.</p>
+          </div>
+
+          {!auditItems.length ? (
+            <p className="text-center text-gray-400 py-8 text-sm">No audit events recorded yet.</p>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {auditItems.map((entry) => (
+                  <div key={entry.id} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-slate-700/50 last:border-0">
+                    <span className={cn('w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5', actionColor(entry.action))}>
+                      {actionIcon(entry.action)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{entry.user.name}</span>
+                        <span className="text-sm text-gray-600 dark:text-slate-300">{entry.action.replace(/\./g, ' ')}</span>
+                        <span className="text-xs font-mono text-gray-400 bg-gray-50 dark:bg-slate-700 px-1.5 py-0.5 rounded">{entry.entityType}:{entry.entityId.slice(0, 8)}</span>
+                      </div>
+                      {entry.metadata && Object.keys(entry.metadata).length > 0 && (
+                        <p className="text-xs text-gray-400 mt-0.5">{JSON.stringify(entry.metadata)}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400 dark:text-slate-500 flex-shrink-0">{formatRelativeTime(entry.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
+              {auditPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                  <p className="text-xs text-gray-500">{auditTotal} total events</p>
+                  <div className="flex items-center gap-2">
+                    <button disabled={auditPage === 1} onClick={() => setAuditPage(p => p - 1)}
+                      className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">
+                      <ChevronUp className="w-3 h-3" />
+                    </button>
+                    <span className="text-xs text-gray-500">{auditPage} / {auditPages}</span>
+                    <button disabled={auditPage === auditPages} onClick={() => setAuditPage(p => p + 1)}
+                      className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Danger Zone */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-red-100 dark:border-red-900/40 p-6">
           <h2 className="text-lg font-semibold text-red-700 mb-2">Danger Zone</h2>
-          <p className="text-gray-500 text-sm mb-4">
-            Deleting your organization will permanently remove all projects, tasks, and members.
-            This action cannot be undone.
+          <p className="text-gray-500 dark:text-slate-400 text-sm mb-4">
+            Deleting your organization will permanently remove all projects, tasks, and members. This action cannot be undone.
           </p>
           <Button variant="danger" onClick={() => toast.error('Contact support to delete your organization')}>
             Delete Organization
           </Button>
         </div>
       </div>
+
+      {/* Create Webhook Modal */}
+      <Modal isOpen={showWebhookModal} onClose={() => { setShowWebhookModal(false); resetWebhook() }} title="Add Webhook" size="lg">
+        <form onSubmit={handleWebhookSubmit((d) => createWebhookMutation.mutate(d))} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Name *</label>
+            <input {...registerWebhook('name')} placeholder="e.g. Slack notifications"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white" />
+            {whErrors.name && <p className="text-red-500 text-xs mt-1">{whErrors.name.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Endpoint URL *</label>
+            <input {...registerWebhook('url')} placeholder="https://your-server.com/webhook"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white" />
+            {whErrors.url && <p className="text-red-500 text-xs mt-1">{whErrors.url.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Events to subscribe *</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {ALL_EVENTS.map((e) => (
+                <label key={e.value} className="flex items-center gap-2 cursor-pointer group">
+                  <input type="checkbox" checked={selectedEvents.includes(e.value)} onChange={() => toggleEvent(e.value)}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                  <span className="text-sm text-gray-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">{e.label}</span>
+                </label>
+              ))}
+            </div>
+            {whErrors.events && <p className="text-red-500 text-xs mt-1">{whErrors.events.message}</p>}
+          </div>
+          <p className="text-xs text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-900 rounded-lg p-3">
+            A unique HMAC-SHA256 signing secret will be generated automatically. Use it to verify incoming requests by checking the <code className="font-mono">X-ProjectFlow-Signature</code> header.
+          </p>
+          <div className="flex justify-end gap-3 pt-1">
+            <Button variant="outline" type="button" onClick={() => { setShowWebhookModal(false); resetWebhook() }}>Cancel</Button>
+            <Button type="submit" loading={whSubmitting || createWebhookMutation.isPending}>Create Webhook</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {deliveriesWebhookId && (
+        <WebhookDeliveriesModal
+          webhookId={deliveriesWebhookId}
+          orgId={currentOrg!.id}
+          onClose={() => setDeliveriesWebhookId(null)}
+        />
+      )}
     </div>
   )
 }

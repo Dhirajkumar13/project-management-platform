@@ -2,6 +2,8 @@ import { projectRepository } from '@/repositories/project.repository'
 import { AppError } from '@/middleware/error'
 import { ProjectStatus, Visibility, ProjectRole } from '@prisma/client'
 import { PaginationParams } from '@/types'
+import { organizationRepository } from '@/repositories/organization.repository'
+import { webhookService } from '@/services/webhook.service'
 
 export const projectService = {
   create: async (orgId: string, userId: string, data: {
@@ -20,6 +22,11 @@ export const projectService = {
       endDate: data.endDate ? new Date(data.endDate) : undefined,
     })
     await projectRepository.addMember(project.id, userId, 'LEAD')
+    await organizationRepository.createAuditLog({
+      organizationId: orgId, userId, action: 'project.created',
+      entityType: 'project', entityId: project.id, metadata: { name: project.name },
+    })
+    webhookService.trigger(orgId, 'project.created', { projectId: project.id, name: project.name }).catch(() => {})
     return project
   },
 
@@ -34,7 +41,7 @@ export const projectService = {
     return projectRepository.list(orgId, params)
   },
 
-  update: async (projectId: string, orgId: string, data: {
+  update: async (projectId: string, orgId: string, userId: string, data: {
     name?: string
     description?: string
     status?: ProjectStatus
@@ -45,17 +52,28 @@ export const projectService = {
   }) => {
     const project = await projectRepository.findById(projectId, orgId)
     if (!project) throw new AppError('Project not found', 404)
-    return projectRepository.update(projectId, {
+    const updated = await projectRepository.update(projectId, {
       ...data,
       startDate: data.startDate ? new Date(data.startDate) : undefined,
       endDate: data.endDate ? new Date(data.endDate) : undefined,
     })
+    await organizationRepository.createAuditLog({
+      organizationId: orgId, userId, action: 'project.updated',
+      entityType: 'project', entityId: projectId, metadata: data as Record<string, unknown>,
+    })
+    webhookService.trigger(orgId, 'project.updated', { projectId, changes: data }).catch(() => {})
+    return updated
   },
 
-  delete: async (projectId: string, orgId: string) => {
+  delete: async (projectId: string, orgId: string, userId: string) => {
     const project = await projectRepository.findById(projectId, orgId)
     if (!project) throw new AppError('Project not found', 404)
     await projectRepository.softDelete(projectId)
+    await organizationRepository.createAuditLog({
+      organizationId: orgId, userId, action: 'project.deleted',
+      entityType: 'project', entityId: projectId, metadata: { name: project.name },
+    })
+    webhookService.trigger(orgId, 'project.deleted', { projectId, name: project.name }).catch(() => {})
   },
 
   addMember: async (projectId: string, userId: string, role: ProjectRole) => {

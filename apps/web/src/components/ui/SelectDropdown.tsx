@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -24,25 +24,38 @@ export function SelectDropdown({
   value, options, onChange, placeholder, variant = 'field', className, disabled,
 }: Props) {
   const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
   const [coords, setCoords] = useState({ top: 0, left: 0, minWidth: 0 })
   const wrapperRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const listboxId = useId()
 
-  const current = options.find((o) => o.value === value)
+  const allOptions: SelectOption[] = placeholder
+    ? [{ label: placeholder, value: '' }, ...options]
+    : options
+
+  const current = allOptions.find((o) => o.value === value)
   const isActive = !!value && variant === 'chip'
   const displayLabel = current?.label ?? placeholder ?? ''
 
+  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (!wrapperRef.current?.contains(target) && !dropdownRef.current?.contains(target)) {
-        setOpen(false)
-      }
+      const t = e.target as Node
+      if (!wrapperRef.current?.contains(t) && !dropdownRef.current?.contains(t)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  // Reset active index when opening
+  useEffect(() => {
+    if (open) {
+      const currentIdx = allOptions.findIndex((o) => o.value === value)
+      setActiveIndex(currentIdx >= 0 ? currentIdx : 0)
+    }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggle = () => {
     if (btnRef.current) {
@@ -52,32 +65,59 @@ export function SelectDropdown({
     setOpen((o) => !o)
   }
 
-  const allOptions: SelectOption[] = placeholder
-    ? [{ label: placeholder, value: '' }, ...options]
-    : options
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        handleToggle()
+      }
+      return
+    }
+    if (e.key === 'Escape') { e.preventDefault(); setOpen(false); btnRef.current?.focus(); return }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex((i) => Math.min(i + 1, allOptions.length - 1)); return }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex((i) => Math.max(i - 1, 0)); return }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      if (activeIndex >= 0) { onChange(allOptions[activeIndex].value); setOpen(false); btnRef.current?.focus() }
+    }
+    if (e.key === 'Home') { e.preventDefault(); setActiveIndex(0) }
+    if (e.key === 'End') { e.preventDefault(); setActiveIndex(allOptions.length - 1) }
+  }
+
+  const select = (optValue: string) => {
+    onChange(optValue)
+    setOpen(false)
+    btnRef.current?.focus()
+  }
 
   const dropdown = open ? (
     <div
       ref={dropdownRef}
+      role="listbox"
+      id={listboxId}
+      aria-label="Options"
       style={{ position: 'fixed', top: coords.top, left: coords.left, minWidth: Math.max(coords.minWidth, 120), zIndex: 9999 }}
-      className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
+      className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-600 overflow-hidden"
     >
-      {allOptions.map((opt) => (
-        <button
+      {allOptions.map((opt, idx) => (
+        <div
           key={opt.value}
-          type="button"
-          onClick={() => { onChange(opt.value); setOpen(false) }}
+          role="option"
+          aria-selected={opt.value === value}
+          onMouseDown={(e) => { e.preventDefault(); select(opt.value) }}
+          onMouseEnter={() => setActiveIndex(idx)}
           className={cn(
-            'flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors whitespace-nowrap',
-            opt.value === value ? 'text-indigo-600 font-medium' : opt.value === '' ? 'text-gray-400' : 'text-gray-700'
+            'flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm cursor-pointer transition-colors whitespace-nowrap',
+            idx === activeIndex ? 'bg-indigo-50 dark:bg-indigo-900/30' : 'hover:bg-gray-50 dark:hover:bg-slate-700',
+            opt.value === value ? 'text-indigo-600 dark:text-indigo-400 font-medium' : opt.value === '' ? 'text-gray-400' : 'text-gray-700 dark:text-slate-200'
           )}
         >
           <span className="flex items-center gap-2">
             {opt.color && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: opt.color }} />}
             {opt.label}
           </span>
-          {opt.value === value && opt.value !== '' && <Check className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />}
-        </button>
+          {opt.value === value && opt.value !== '' && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" aria-hidden="true" />}
+        </div>
       ))}
     </div>
   ) : null
@@ -89,20 +129,24 @@ export function SelectDropdown({
         type="button"
         disabled={disabled}
         onClick={handleToggle}
+        onKeyDown={handleKeyDown}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
         className={cn(
           'flex items-center gap-1.5 text-sm font-medium transition-colors disabled:opacity-50',
           variant === 'chip'
             ? cn(
                 'px-3 py-1.5 rounded-lg border',
                 isActive
-                  ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-600 dark:text-indigo-300'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'
               )
-            : 'w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-gray-300 justify-between'
+            : 'w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-gray-300 justify-between dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200'
         )}
       >
         <span className="truncate">{displayLabel}</span>
-        <ChevronDown className={cn('w-3.5 h-3.5 flex-shrink-0 transition-transform text-gray-400', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-3.5 h-3.5 flex-shrink-0 transition-transform text-gray-400', open && 'rotate-180')} aria-hidden="true" />
       </button>
 
       {typeof window !== 'undefined' && createPortal(dropdown, document.body)}

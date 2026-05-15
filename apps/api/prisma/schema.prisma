@@ -65,6 +65,7 @@ model Organization {
   projects      Project[]
   auditLogs     AuditLog[]
   notifications Notification[]
+  webhooks      Webhook[]
 }
 
 enum OrgRole {
@@ -85,6 +86,8 @@ model OrganizationMember {
   joinedAt       DateTime     @default(now())
 
   @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
 }
 
 model OrganizationInvite {
@@ -147,6 +150,8 @@ model ProjectMember {
   joinedAt  DateTime    @default(now())
 
   @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
 }
 
 enum TaskStatus {
@@ -246,6 +251,8 @@ model TaskComment {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  @@index([taskId, deletedAt, createdAt])
 }
 
 model TaskAttachment {
@@ -311,4 +318,38 @@ model AuditLog {
   entityId       String
   metadata       Json?
   createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model Webhook {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  url            String
+  secret         String
+  events         String[]
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  deliveries WebhookDelivery[]
+
+  @@index([organizationId])
+}
+
+model WebhookDelivery {
+  id         String   @id @default(cuid())
+  webhookId  String
+  webhook    Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event      String
+  payload    Json
+  statusCode Int?
+  success    Boolean  @default(false)
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@index([webhookId, createdAt])
 }
