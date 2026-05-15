@@ -4,22 +4,43 @@
 
 @layer base {
   * { box-sizing: border-box; }
-  body { @apply bg-gray-50 text-gray-900 antialiased; }
+  body { @apply bg-zinc-50 text-zinc-900 antialiased; }
 
-  /* Dark mode body defaults */
-  .dark body { background-color: theme('colors.slate.900'); color: theme('colors.slate.100'); }
+  .dark body {
+    background-color: #111318;
+    color: #e4e7ec;
+  }
 
   :focus-visible {
-    outline: 2px solid #6366f1;
+    outline: 2px solid #18181b;
     outline-offset: 2px;
+  }
+  .dark :focus-visible {
+    outline-color: rgba(255,255,255,0.3);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-bold tracking-tight;
+  }
+
+  /* Smooth theme transitions on interactive elements only */
+  button, a, input, textarea, select, [role="button"] {
+    transition-property: color, background-color, border-color, opacity, box-shadow;
+    transition-duration: 120ms;
+    transition-timing-function: ease;
   }
 }
 
 @layer components {
+  /* Sidebar nav links — Linear-inspired minimal style */
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors;
+    @apply flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] font-medium
+      text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05]
+      transition-all duration-100;
   }
   .sidebar-link.active {
-    @apply text-white bg-slate-800;
+    @apply text-zinc-100 bg-white/[0.08];
   }
+
 }

@@ -61,11 +61,11 @@ export function NavigationProgress() {
       className="fixed top-0 left-0 right-0 z-[9999] h-[3px] pointer-events-none"
     >
       <div
-        className="h-full bg-indigo-500 transition-all ease-out"
+        className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all ease-out"
         style={{
           width: `${progress}%`,
           transitionDuration: progress === 100 ? '200ms' : '250ms',
-          boxShadow: '0 0 8px rgba(99,102,241,0.7)',
+          boxShadow: '0 0 8px rgba(24,24,27,0.4)',
         }}
       />
     </div>

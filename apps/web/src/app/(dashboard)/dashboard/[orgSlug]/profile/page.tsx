@@ -155,7 +155,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarUploading}
-                className="mt-1 text-xs text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+                className="mt-1 text-xs text-zinc-900 hover:text-zinc-700 underline disabled:opacity-50"
               >
                 {avatarUploading ? 'Uploading…' : 'Upload photo'}
               </button>
@@ -165,14 +165,14 @@ export default function ProfilePage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
               <input {...register('name')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
             <input type="hidden" {...register('avatarUrl')} />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
               <select {...register('timezone')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900">
                 {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
               </select>
             </div>
@@ -187,19 +187,19 @@ export default function ProfilePage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
               <input {...regPwd('currentPassword')} type="password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
               {pwdErrors.currentPassword && <p className="text-red-500 text-xs mt-1">{pwdErrors.currentPassword.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
               <input {...regPwd('newPassword')} type="password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
               {pwdErrors.newPassword && <p className="text-red-500 text-xs mt-1">{pwdErrors.newPassword.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
               <input {...regPwd('confirm')} type="password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
               {pwdErrors.confirm && <p className="text-red-500 text-xs mt-1">{pwdErrors.confirm.message}</p>}
             </div>
             <Button type="submit" variant="outline" loading={pwdSubmitting || passwordMutation.isPending}>
@@ -227,13 +227,13 @@ export default function ProfilePage() {
                     <td className="py-3 text-sm text-gray-700">{PREF_LABELS[key]}</td>
                     <td className="py-3 text-center">
                       <button onClick={() => togglePref(key, 'email')}
-                        className={`w-10 h-5 rounded-full transition-colors ${prefs[key].email ? 'bg-indigo-600' : 'bg-gray-200'} relative`}>
+                        className={`w-10 h-5 rounded-full transition-colors ${prefs[key].email ? 'bg-zinc-900' : 'bg-gray-200'} relative`}>
                         <span className={`block w-4 h-4 bg-white rounded-full shadow transition-transform absolute top-0.5 ${prefs[key].email ? 'translate-x-5' : 'translate-x-0.5'}`} />
                       </button>
                     </td>
                     <td className="py-3 text-center">
                       <button onClick={() => togglePref(key, 'in_app')}
-                        className={`w-10 h-5 rounded-full transition-colors ${prefs[key].in_app ? 'bg-indigo-600' : 'bg-gray-200'} relative`}>
+                        className={`w-10 h-5 rounded-full transition-colors ${prefs[key].in_app ? 'bg-zinc-900' : 'bg-gray-200'} relative`}>
                         <span className={`block w-4 h-4 bg-white rounded-full shadow transition-transform absolute top-0.5 ${prefs[key].in_app ? 'translate-x-5' : 'translate-x-0.5'}`} />
                       </button>
                     </td>

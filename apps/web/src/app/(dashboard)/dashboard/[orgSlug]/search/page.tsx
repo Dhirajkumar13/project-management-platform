@@ -67,7 +67,7 @@ export default function SearchPage({ params }: { params: { orgSlug: string } }) 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tasks, projects, comments..."
-            className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 shadow-sm"
             autoFocus
           />
           {query && (
@@ -83,7 +83,7 @@ export default function SearchPage({ params }: { params: { orgSlug: string } }) 
             <button key={t} onClick={() => setType(t)}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors',
-                type === t ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                type === t ? 'bg-zinc-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
               )}>
               {t === 'all' ? 'All' : t === 'task' ? 'Tasks' : t === 'project' ? 'Projects' : 'Comments'}
             </button>
@@ -150,8 +150,8 @@ export default function SearchPage({ params }: { params: { orgSlug: string } }) 
                     <Link key={project.id}
                       href={`/dashboard/${params.orgSlug}/projects/${project.id}/kanban`}
                       className={cn('flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors', idx > 0 && 'border-t border-gray-50')}>
-                      <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <FolderOpen className="w-4 h-4 text-indigo-600" />
+                      <div className="w-7 h-7 bg-zinc-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <FolderOpen className="w-4 h-4 text-zinc-500" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">

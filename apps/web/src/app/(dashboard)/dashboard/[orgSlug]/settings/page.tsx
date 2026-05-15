@@ -198,19 +198,19 @@ export default function OrgSettingsPage() {
       <div className="p-6 max-w-3xl space-y-6">
 
         {/* General */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-surface-card rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.08] p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">General Settings</h2>
           <form onSubmit={handleOrgSubmit((d) => updateMutation.mutate(d))} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Organization Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Organization Name</label>
               <input {...registerOrg('name')}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white" />
+                className="w-full px-3 py-2 border border-gray-300 dark:border-white/[0.1] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:bg-surface-elevated dark:text-white" />
               {orgErrors.name && <p className="text-red-500 text-xs mt-1">{orgErrors.name.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Slug</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Slug</label>
               <input value={currentOrg?.slug ?? ''} disabled
-                className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm bg-gray-50 dark:bg-slate-900 text-gray-500" />
+                className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm bg-gray-50 dark:bg-surface-elevated text-gray-500" />
               <p className="text-xs text-gray-400 mt-1">Slug cannot be changed after creation</p>
             </div>
             <Button type="submit" loading={orgSubmitting || updateMutation.isPending}>Save Changes</Button>
@@ -218,11 +218,11 @@ export default function OrgSettingsPage() {
         </div>
 
         {/* Webhooks */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-surface-card rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.08] p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Webhooks</h2>
-              <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Receive HTTP POST notifications when events occur in your organization.</p>
+              <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">Receive HTTP POST notifications when events occur in your organization.</p>
             </div>
             <Button onClick={() => setShowWebhookModal(true)} size="sm">
               <Plus className="w-4 h-4" /> Add Webhook
@@ -230,13 +230,13 @@ export default function OrgSettingsPage() {
           </div>
 
           {!webhooks?.length ? (
-            <div className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl py-10 text-center">
+            <div className="border-2 border-dashed border-gray-200 dark:border-white/[0.08] rounded-xl py-10 text-center">
               <p className="text-gray-400 text-sm">No webhooks configured yet.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {webhooks.map((wh) => (
-                <div key={wh.id} className="border border-gray-100 dark:border-slate-700 rounded-xl p-4">
+                <div key={wh.id} className="border border-gray-100 dark:border-white/[0.08] rounded-xl p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -245,17 +245,17 @@ export default function OrgSettingsPage() {
                           {wh.active ? 'Active' : 'Paused'}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 font-mono truncate">{wh.url}</p>
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 font-mono truncate">{wh.url}</p>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {wh.events.map(e => (
-                          <span key={e} className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded">{e}</span>
+                          <span key={e} className="text-xs bg-zinc-100 dark:bg-surface-card text-zinc-600 dark:text-zinc-300 px-1.5 py-0.5 rounded">{e}</span>
                         ))}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button onClick={() => setDeliveriesWebhookId(wh.id)}
                         title="View delivery history"
-                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-xs">
+                        className="p-1.5 text-gray-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors text-xs">
                         <Clock className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => { if (confirm('Rotate the signing secret? This will invalidate the current secret.')) rotateSecretMutation.mutate(wh.id) }}
@@ -264,7 +264,7 @@ export default function OrgSettingsPage() {
                         <RefreshCw className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => toggleWebhookMutation.mutate({ id: wh.id, active: !wh.active })}
-                        className="px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                        className="px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-white/[0.1] text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-surface-elevated transition-colors">
                         {wh.active ? 'Pause' : 'Enable'}
                       </button>
                       <button onClick={() => { if (confirm('Delete this webhook?')) deleteWebhookMutation.mutate(wh.id) }}
@@ -273,9 +273,9 @@ export default function OrgSettingsPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-50 dark:border-slate-700/50 flex items-center gap-2">
+                  <div className="mt-3 pt-3 border-t border-gray-50 dark:border-white/[0.08]/50 flex items-center gap-2">
                     <span className="text-xs text-gray-400">Signing secret:</span>
-                    <code className="text-xs font-mono text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900 px-2 py-0.5 rounded select-all">{wh.secret}</code>
+                    <code className="text-xs font-mono text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-surface-elevated px-2 py-0.5 rounded select-all">{wh.secret}</code>
                   </div>
                 </div>
               ))}
@@ -284,10 +284,10 @@ export default function OrgSettingsPage() {
         </div>
 
         {/* Audit Log */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-surface-card rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.08] p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Audit Log</h2>
-            <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">A record of all significant actions taken within your organization.</p>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">A record of all significant actions taken within your organization.</p>
           </div>
 
           {!auditItems.length ? (
@@ -296,26 +296,26 @@ export default function OrgSettingsPage() {
             <>
               <div className="space-y-2">
                 {auditItems.map((entry) => (
-                  <div key={entry.id} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-slate-700/50 last:border-0">
+                  <div key={entry.id} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-white/[0.08]/50 last:border-0">
                     <span className={cn('w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5', actionColor(entry.action))}>
                       {actionIcon(entry.action)}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">{entry.user.name}</span>
-                        <span className="text-sm text-gray-600 dark:text-slate-300">{entry.action.replace(/\./g, ' ')}</span>
-                        <span className="text-xs font-mono text-gray-400 bg-gray-50 dark:bg-slate-700 px-1.5 py-0.5 rounded">{entry.entityType}:{entry.entityId.slice(0, 8)}</span>
+                        <span className="text-sm text-gray-600 dark:text-zinc-300">{entry.action.replace(/\./g, ' ')}</span>
+                        <span className="text-xs font-mono text-gray-400 bg-gray-50 dark:bg-surface-elevated px-1.5 py-0.5 rounded">{entry.entityType}:{entry.entityId.slice(0, 8)}</span>
                       </div>
                       {entry.metadata && Object.keys(entry.metadata).length > 0 && (
                         <p className="text-xs text-gray-400 mt-0.5">{JSON.stringify(entry.metadata)}</p>
                       )}
                     </div>
-                    <span className="text-xs text-gray-400 dark:text-slate-500 flex-shrink-0">{formatRelativeTime(entry.createdAt)}</span>
+                    <span className="text-xs text-gray-400 dark:text-zinc-500 flex-shrink-0">{formatRelativeTime(entry.createdAt)}</span>
                   </div>
                 ))}
               </div>
               {auditPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.08]">
                   <p className="text-xs text-gray-500">{auditTotal} total events</p>
                   <div className="flex items-center gap-2">
                     <button disabled={auditPage === 1} onClick={() => setAuditPage(p => p - 1)}
@@ -335,9 +335,9 @@ export default function OrgSettingsPage() {
         </div>
 
         {/* Danger Zone */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-red-100 dark:border-red-900/40 p-6">
+        <div className="bg-white dark:bg-surface-card rounded-xl shadow-sm border border-red-100 dark:border-red-900/40 p-6">
           <h2 className="text-lg font-semibold text-red-700 mb-2">Danger Zone</h2>
-          <p className="text-gray-500 dark:text-slate-400 text-sm mb-4">
+          <p className="text-gray-500 dark:text-zinc-400 text-sm mb-4">
             Deleting your organization will permanently remove all projects, tasks, and members. This action cannot be undone.
           </p>
           <Button variant="danger" onClick={() => toast.error('Contact support to delete your organization')}>
@@ -350,31 +350,31 @@ export default function OrgSettingsPage() {
       <Modal isOpen={showWebhookModal} onClose={() => { setShowWebhookModal(false); resetWebhook() }} title="Add Webhook" size="lg">
         <form onSubmit={handleWebhookSubmit((d) => createWebhookMutation.mutate(d))} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Name *</label>
             <input {...registerWebhook('name')} placeholder="e.g. Slack notifications"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white" />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-white/[0.1] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:bg-surface-elevated dark:text-white" />
             {whErrors.name && <p className="text-red-500 text-xs mt-1">{whErrors.name.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Endpoint URL *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Endpoint URL *</label>
             <input {...registerWebhook('url')} placeholder="https://your-server.com/webhook"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white" />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-white/[0.1] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:bg-surface-elevated dark:text-white" />
             {whErrors.url && <p className="text-red-500 text-xs mt-1">{whErrors.url.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Events to subscribe *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Events to subscribe *</label>
             <div className="grid grid-cols-2 gap-1.5">
               {ALL_EVENTS.map((e) => (
                 <label key={e.value} className="flex items-center gap-2 cursor-pointer group">
                   <input type="checkbox" checked={selectedEvents.includes(e.value)} onChange={() => toggleEvent(e.value)}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                  <span className="text-sm text-gray-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">{e.label}</span>
+                    className="rounded border-gray-300 text-zinc-900 focus:ring-zinc-900" />
+                  <span className="text-sm text-gray-700 dark:text-zinc-300 group-hover:text-zinc-900 transition-colors">{e.label}</span>
                 </label>
               ))}
             </div>
             {whErrors.events && <p className="text-red-500 text-xs mt-1">{whErrors.events.message}</p>}
           </div>
-          <p className="text-xs text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-900 rounded-lg p-3">
+          <p className="text-xs text-gray-400 dark:text-zinc-500 bg-gray-50 dark:bg-surface-elevated rounded-lg p-3">
             A unique HMAC-SHA256 signing secret will be generated automatically. Use it to verify incoming requests by checking the <code className="font-mono">X-ProjectFlow-Signature</code> header.
           </p>
           <div className="flex justify-end gap-3 pt-1">

@@ -107,7 +107,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-gray-300" />
-    return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-indigo-600" /> : <ArrowDown className="w-3 h-3 text-indigo-600" />
+    return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-zinc-900 dark:text-zinc-100" /> : <ArrowDown className="w-3 h-3 text-zinc-900 dark:text-zinc-100" />
   }
 
   const exportCSV = () => {
@@ -175,25 +175,25 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
 
           <div className="flex items-center gap-2">
             {/* View switcher */}
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-surface-card rounded-lg p-1">
               <Link
                 href={`/dashboard/${params.orgSlug}/projects/${params.projectId}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-surface-elevated transition-colors"
               >
                 <LayoutDashboard className="w-3.5 h-3.5" /> Overview
               </Link>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-medium shadow-sm">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white dark:bg-surface-elevated text-zinc-900 dark:text-white font-medium shadow-sm">
                 <List className="w-3.5 h-3.5" /> List
               </span>
               <Link
                 href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-surface-elevated transition-colors"
               >
                 <LayoutGrid className="w-3.5 h-3.5" /> Kanban
               </Link>
             </div>
             <button onClick={exportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 dark:border-slate-700 rounded-lg text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700">
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-surface-elevated">
               <Download className="w-4 h-4" /> Export CSV
             </button>
           </div>
@@ -205,48 +205,48 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
         ) : isError ? (
           <ErrorState onRetry={refetch} />
         ) : (
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-surface-card rounded-xl border border-gray-100 dark:border-white/[0.08] shadow-sm overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
+                <tr className="border-b border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-surface-elevated/50">
                   <th className="px-4 py-3 w-10">
                     <input type="checkbox" checked={allSelected} onChange={toggleAll}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                      className="rounded border-gray-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer" />
                   </th>
                   <th className="px-4 py-3 text-left">
-                    <button onClick={() => toggleSort('title')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-slate-200">
+                    <button onClick={() => toggleSort('title')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-zinc-200">
                       Title <SortIcon field="title" />
                     </button>
                   </th>
                   <th className="px-4 py-3 text-left w-32">
-                    <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-slate-200">
+                    <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-zinc-200">
                       Status <SortIcon field="status" />
                     </button>
                   </th>
                   <th className="px-4 py-3 text-left w-28">
-                    <button onClick={() => toggleSort('priority')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-slate-200">
+                    <button onClick={() => toggleSort('priority')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-zinc-200">
                       Priority <SortIcon field="priority" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left w-36 text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Assignees</th>
+                  <th className="px-4 py-3 text-left w-36 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">Assignees</th>
                   <th className="px-4 py-3 text-left w-28">
-                    <button onClick={() => toggleSort('dueDate')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-slate-200">
+                    <button onClick={() => toggleSort('dueDate')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-zinc-200">
                       Due <SortIcon field="dueDate" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center w-16 text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">SP</th>
+                  <th className="px-4 py-3 text-center w-16 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">SP</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
+              <tbody className="divide-y divide-gray-50 dark:divide-white/[0.05]">
                 {sorted.length === 0 ? (
-                  <tr><td colSpan={7} className="py-12 text-center text-gray-400 dark:text-slate-500 text-sm">No tasks found</td></tr>
+                  <tr><td colSpan={7} className="py-12 text-center text-gray-400 dark:text-zinc-500 text-sm">No tasks found</td></tr>
                 ) : sorted.map((task) => (
                   <tr key={task.id}
                     onClick={() => router.push(`/dashboard/${params.orgSlug}/projects/${params.projectId}/tasks/${task.id}`)}
-                    className={cn('hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer', selected.has(task.id) && 'bg-indigo-50 dark:bg-indigo-900/20')}>
+                    className={cn('hover:bg-gray-50 dark:hover:bg-surface-elevated/50 transition-colors cursor-pointer', selected.has(task.id) && 'bg-zinc-100 dark:bg-surface-card/40')}>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggleOne(task.id)}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                        className="rounded border-gray-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer" />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -254,7 +254,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
                         <Link
                           href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/tasks/${task.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="text-sm text-gray-900 dark:text-slate-200 truncate max-w-xs hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors"
+                          className="text-sm text-gray-900 dark:text-zinc-200 truncate max-w-xs hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                         >
                           {task.title}
                         </Link>
@@ -292,7 +292,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className="text-xs text-gray-500 dark:text-slate-400">{task.storyPoints ?? '—'}</span>
+                      <span className="text-xs text-gray-500 dark:text-zinc-400">{task.storyPoints ?? '—'}</span>
                     </td>
                   </tr>
                 ))}

@@ -59,21 +59,21 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" role="presentation">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
         <div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? 'modal-title' : undefined}
-          className={cn('relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full', sizes[size])}
+          className={cn('relative bg-white dark:bg-surface-elevated rounded-xl shadow-xl dark:shadow-2xl border border-transparent dark:border-white/[0.08] w-full', sizes[size])}
         >
           {title && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
-              <h2 id="modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/[0.06]">
+              <h2 id="modal-title" className="text-base font-semibold text-gray-900 dark:text-zinc-100">{title}</h2>
               <button
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                className="p-1 text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-md transition-colors"
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>

@@ -33,6 +33,7 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [])
+
   const { unreadCount, notifications, markRead, markAllRead, clearNotifications, setNotifications, setUnreadCount } = useNotificationStore()
 
   useQuery({
@@ -65,31 +66,36 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
   }
 
   return (
-    <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 flex-shrink-0">
-      <div className="flex items-center gap-3">
+    <header className="h-12 bg-white dark:bg-surface-bg border-b border-gray-100 dark:border-white/5 flex items-center justify-between px-5 flex-shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
         {backHref && (
-          <button onClick={() => router.back()} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors" aria-label="Go back">
-            <ArrowLeft className="w-4 h-4" />
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-md transition-colors flex-shrink-0"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
           </button>
         )}
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h1>
+            <h1 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">{title}</h1>
             {titleSuffix}
           </div>
-          {subtitle && <p className="text-xs text-gray-400 dark:text-slate-500 -mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-[11px] text-gray-400 dark:text-zinc-500 -mt-px">{subtitle}</p>}
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {/* Search trigger */}
         <button
           onClick={() => setShowPalette(true)}
-          className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-lg transition-colors"
+          className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 text-sm text-gray-400 dark:text-zinc-500 bg-gray-50 dark:bg-surface-card hover:bg-gray-100 dark:hover:bg-surface-elevated border border-gray-200 dark:border-white/[0.07] rounded-lg transition-colors"
           aria-label="Open search (⌘K)"
         >
           <Search className="w-3.5 h-3.5" />
-          <span className="text-xs">Search</span>
-          <kbd className="ml-1 text-xs font-mono bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded px-1 py-0.5 text-gray-400 dark:text-slate-400">⌘K</kbd>
+          <span className="text-xs text-gray-400 dark:text-zinc-500">Search</span>
+          <kbd className="ml-1 text-[10px] font-mono bg-white dark:bg-surface-elevated border border-gray-200 dark:border-white/10 rounded px-1 py-0.5 text-gray-400 dark:text-zinc-500">⌘K</kbd>
         </button>
 
         <CommandPalette open={showPalette} onClose={() => setShowPalette(false)} />
@@ -98,7 +104,7 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
         <div
           role="group"
           aria-label="Theme preference"
-          className="hidden sm:flex items-center bg-gray-100 dark:bg-slate-800 rounded-lg p-1 gap-0.5 border border-gray-200 dark:border-slate-700"
+          className="hidden sm:flex items-center bg-gray-100 dark:bg-surface-card rounded-lg p-0.5 gap-px border border-gray-200 dark:border-white/[0.07]"
         >
           {([
             { value: 'light',  icon: Sun,     label: 'Light mode' },
@@ -114,8 +120,8 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
               className={cn(
                 'p-1.5 rounded-md transition-all',
                 preference === value
-                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                  : 'text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200'
+                  ? 'bg-white dark:bg-surface-elevated text-zinc-900 dark:text-zinc-100 shadow-sm'
+                  : 'text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300'
               )}
             >
               <Icon className="w-3.5 h-3.5" aria-hidden="true" />
@@ -123,29 +129,30 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
           ))}
         </div>
 
+        {/* Notification bell */}
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             aria-label={unreadCount > 0 ? `Notifications — ${unreadCount} unread` : 'Notifications'}
             aria-expanded={showNotifications}
             aria-haspopup="true"
-            className="relative p-2 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="relative p-1.5 text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-md transition-colors"
           >
-            <Bell className="w-5 h-5" aria-hidden="true" />
+            <Bell className="w-4 h-4" aria-hidden="true" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Notifications</h3>
+            <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-surface-elevated rounded-xl shadow-xl dark:shadow-2xl border border-gray-100 dark:border-white/10 z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/5">
+                <h3 className="font-semibold text-gray-900 dark:text-zinc-100 text-sm">Notifications</h3>
                 <div className="flex items-center gap-3">
                   {unreadCount > 0 && (
-                    <button onClick={handleMarkAllRead} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+                    <button onClick={handleMarkAllRead} className="text-xs text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium">
                       Mark all read
                     </button>
                   )}
@@ -158,23 +165,23 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <div className="py-8 text-center text-gray-500 dark:text-slate-400 text-sm">No notifications</div>
+                  <div className="py-8 text-center text-gray-400 dark:text-zinc-500 text-sm">No notifications</div>
                 ) : (
                   notifications.map((n) => (
                     <div
                       key={n.id}
                       onClick={() => !n.read && handleMarkRead(n.id)}
                       className={cn(
-                        'px-4 py-3 border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition-colors',
-                        !n.read && 'bg-indigo-50/50 dark:bg-indigo-900/20'
+                        'px-4 py-3 border-b border-gray-50 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer transition-colors',
+                        !n.read && 'bg-zinc-50 dark:bg-white/[0.03]'
                       )}
                     >
                       <div className="flex items-start gap-3">
-                        {!n.read && <div className="w-2 h-2 bg-indigo-500 rounded-full mt-1.5 flex-shrink-0" />}
-                        <div className={cn('flex-1', n.read && 'ml-5')}>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{n.title}</p>
-                          <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{n.message}</p>
-                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{formatRelativeTime(n.createdAt)}</p>
+                        {!n.read && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />}
+                        <div className={cn('flex-1', n.read && 'ml-4')}>
+                          <p className="text-sm font-medium text-gray-900 dark:text-zinc-100">{n.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{n.message}</p>
+                          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">{formatRelativeTime(n.createdAt)}</p>
                         </div>
                       </div>
                     </div>

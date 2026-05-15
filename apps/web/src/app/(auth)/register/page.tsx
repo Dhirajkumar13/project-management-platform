@@ -41,7 +41,7 @@ export default function RegisterPage() {
       <h2 className="text-2xl font-bold text-gray-900 mb-1">Create account</h2>
       <p className="text-gray-500 text-sm mb-6">
         Already have an account?{' '}
-        <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">Sign in</Link>
+        <Link href="/login" className="text-zinc-900 hover:underline font-medium">Sign in</Link>
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -57,7 +57,7 @@ export default function RegisterPage() {
               {...register(field.name)}
               type={field.type}
               placeholder={field.placeholder}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent text-sm"
             />
             {errors[field.name] && <p className="text-red-500 text-xs mt-1">{errors[field.name]?.message}</p>}
           </div>
@@ -65,7 +65,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 text-sm"
+          className="w-full bg-zinc-900 text-white py-2.5 rounded-lg font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 text-sm"
         >
           {isSubmitting ? 'Creating account...' : 'Create account'}
         </button>

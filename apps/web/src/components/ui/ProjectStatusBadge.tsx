@@ -77,11 +77,11 @@ export function ProjectStatusBadge({ orgId, projectId, status, onUpdate }: Props
             >
               <span className="flex items-center gap-2">
                 <span className={cn('w-2 h-2 rounded-full', opt.dot)} />
-                <span className={cn('font-medium', opt.value === current ? 'text-indigo-600' : 'text-gray-700')}>
+                <span className={cn('font-medium', opt.value === current ? 'text-zinc-900' : 'text-gray-700')}>
                   {opt.label}
                 </span>
               </span>
-              {opt.value === current && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+              {opt.value === current && <Check className="w-3.5 h-3.5 text-zinc-900" />}
             </button>
           ))}
         </div>

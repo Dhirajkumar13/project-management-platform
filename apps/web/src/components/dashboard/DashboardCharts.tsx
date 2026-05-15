@@ -5,7 +5,7 @@ import {
 import { STATUS_LABELS } from '@/lib/utils'
 import { DashboardStats } from '@/types'
 
-const STATUS_CHART_COLORS = ['#6b7280', '#3b82f6', '#6366f1', '#8b5cf6', '#22c55e']
+const STATUS_CHART_COLORS = ['#71717a', '#3b82f6', '#2563eb', '#f59e0b', '#10b981']
 
 interface Props {
   data: DashboardStats
@@ -26,8 +26,8 @@ export function DashboardCharts({ data }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-900 mb-4">Tasks by Status</h3>
+      <div className="bg-white dark:bg-surface-card rounded-xl p-4 shadow-card border border-gray-100 dark:border-white/[0.06]">
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-100 mb-4">Tasks by Status</h3>
         {pieData.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
@@ -45,24 +45,24 @@ export function DashboardCharts({ data }: Props) {
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-48 flex items-center justify-center text-gray-400 text-sm">No task data yet</div>
+          <div className="h-48 flex items-center justify-center text-gray-400 dark:text-zinc-500 text-sm">No task data yet</div>
         )}
       </div>
 
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-900 mb-4">Team Workload</h3>
+      <div className="bg-white dark:bg-surface-card rounded-xl p-4 shadow-card border border-gray-100 dark:border-white/[0.06]">
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-100 mb-4">Team Workload</h3>
         {barData.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barData}>
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
-              <Bar dataKey="assigned" fill="#6366f1" radius={[4, 4, 0, 0]} name="Assigned" />
-              <Bar dataKey="completed" fill="#22c55e" radius={[4, 4, 0, 0]} name="Completed" />
+              <Bar dataKey="assigned" fill="#52525b" radius={[4, 4, 0, 0]} name="Assigned" />
+              <Bar dataKey="completed" fill="#10b981" radius={[4, 4, 0, 0]} name="Completed" />
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-48 flex items-center justify-center text-gray-400 text-sm">No workload data</div>
+          <div className="h-48 flex items-center justify-center text-gray-400 dark:text-zinc-500 text-sm">No workload data</div>
         )}
       </div>
     </div>

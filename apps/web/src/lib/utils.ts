@@ -24,11 +24,11 @@ export const PRIORITY_DOTS: Record<string, string> = {
 }
 
 export const STATUS_COLORS: Record<string, string> = {
-  BACKLOG: 'text-gray-600 bg-gray-100',
+  BACKLOG: 'text-zinc-500 bg-zinc-100',
   TODO: 'text-blue-600 bg-blue-50',
-  IN_PROGRESS: 'text-indigo-600 bg-indigo-50',
-  IN_REVIEW: 'text-purple-600 bg-purple-50',
-  DONE: 'text-green-600 bg-green-50',
+  IN_PROGRESS: 'text-blue-700 bg-blue-100',
+  IN_REVIEW: 'text-amber-700 bg-amber-50',
+  DONE: 'text-emerald-700 bg-emerald-50',
 }
 
 export const STATUS_LABELS: Record<string, string> = {
@@ -40,11 +40,11 @@ export const STATUS_LABELS: Record<string, string> = {
 }
 
 export const ROLE_COLORS: Record<string, string> = {
-  OWNER: 'text-red-700 bg-red-50',
-  ADMIN: 'text-orange-700 bg-orange-50',
-  MANAGER: 'text-blue-700 bg-blue-50',
-  MEMBER: 'text-green-700 bg-green-50',
-  VIEWER: 'text-gray-700 bg-gray-50',
+  OWNER:   'text-red-700 bg-red-50 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20',
+  ADMIN:   'text-orange-700 bg-orange-50 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20',
+  MANAGER: 'text-blue-700 bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
+  MEMBER:  'text-green-700 bg-green-50 border border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20',
+  VIEWER:  'text-zinc-600 bg-zinc-50 border border-zinc-200 dark:bg-zinc-500/10 dark:text-zinc-400 dark:border-zinc-500/20',
 }
 
 export const getInitials = (name: string) =>
@@ -63,7 +63,7 @@ export const formatFileSize = (bytes: number) => {
 
 const AVATAR_COLORS = [
   '#ef4444', '#f97316', '#eab308', '#22c55e',
-  '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899',
+  '#14b8a6', '#3b82f6', '#0ea5e9', '#64748b',
 ]
 
 export const getAvatarColor = (name: string) => {

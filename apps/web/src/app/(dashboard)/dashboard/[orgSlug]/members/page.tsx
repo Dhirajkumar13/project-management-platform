@@ -74,59 +74,68 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
       <Header title="Team Members" />
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <p className="text-gray-500 dark:text-slate-400 text-sm">{membersData?.length ?? 0} members</p>
+          <p className="text-gray-500 dark:text-zinc-400 text-sm">{membersData?.length ?? 0} members</p>
           <Button onClick={() => setShowInvite(true)}>
             <Plus className="w-4 h-4" />
             Invite Member
           </Button>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+        <div className="bg-white dark:bg-surface-card rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.08] overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Member</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Joined</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Actions</th>
+              <tr className="border-b border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-surface-elevated/50">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">Member</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">Joined</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
+            <tbody className="divide-y divide-gray-50 dark:divide-white/[0.05]">
               {isLoading ? (
                 <tr><td colSpan={4} className="px-6 py-8 text-center"><Spinner /></td></tr>
               ) : isError ? (
                 <tr><td colSpan={4}><ErrorState onRetry={refetch} /></td></tr>
               ) : membersData?.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-surface-elevated/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <Avatar name={member.user.name} avatarUrl={member.user.avatarUrl} size="sm" />
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{member.user.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">{member.user.email}</p>
+                        <p className="text-xs text-gray-500 dark:text-zinc-400">{member.user.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     {member.role === 'OWNER' ? (
-                      <span className={cn('text-xs px-2 py-1 rounded-full font-medium', ROLE_COLORS[member.role])}>
-                        {member.role}
+                      <span className={cn('text-xs px-2.5 py-1 rounded-full font-medium', ROLE_COLORS[member.role])}>
+                        Owner
                       </span>
                     ) : (
                       <SelectDropdown
                         value={member.role}
                         onChange={(v) => updateRoleMutation.mutate({ userId: member.userId, role: v as OrgRole })}
-                        options={(['ADMIN', 'MANAGER', 'MEMBER', 'VIEWER'] as OrgRole[]).map((r) => ({ label: r, value: r }))}
+                        options={[
+                          { label: 'Admin', value: 'ADMIN' },
+                          { label: 'Manager', value: 'MANAGER' },
+                          { label: 'Member', value: 'MEMBER' },
+                          { label: 'Viewer', value: 'VIEWER' },
+                        ]}
                         variant="chip"
+                        triggerClassName={cn(
+                          'text-xs font-medium px-2.5 py-1 rounded-full hover:opacity-80',
+                          ROLE_COLORS[member.role]
+                        )}
                       />
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-400">{formatDate(member.joinedAt)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-zinc-400">{formatDate(member.joinedAt)}</td>
                   <td className="px-6 py-4 text-right">
                     {member.role !== 'OWNER' && (
                       <button
                         onClick={() => { if (confirm('Remove this member?')) removeMutation.mutate(member.userId) }}
-                        className="text-gray-400 dark:text-slate-500 hover:text-red-500 transition-colors p-1"
+                        className="text-gray-400 dark:text-zinc-500 hover:text-red-500 transition-colors p-1"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -142,16 +151,16 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
       <Modal isOpen={showInvite} onClose={() => { setShowInvite(false); reset() }} title="Invite Team Member">
         <form onSubmit={handleSubmit((d) => inviteMutation.mutate(d))} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Email address *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Email address *</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input {...register('email')} type="email" placeholder="colleague@company.com"
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 dark:text-white dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-elevated dark:text-white dark:placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </div>
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Role</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Role</label>
             <SelectDropdown
               value={watch('role') ?? 'MEMBER'}
               onChange={(v) => setValue('role', v as InviteForm['role'])}

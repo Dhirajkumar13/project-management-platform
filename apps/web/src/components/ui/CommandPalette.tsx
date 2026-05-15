@@ -153,7 +153,7 @@ export function CommandPalette({ open, onClose }: Props) {
             <button key={t} onClick={() => setType(t)}
               className={cn(
                 'px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-colors',
-                type === t ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-100'
+                type === t ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-surface-elevated'
               )}>
               {t === 'all' ? 'All' : t === 'task' ? 'Tasks' : t === 'project' ? 'Projects' : 'Comments'}
             </button>
@@ -236,8 +236,8 @@ export function CommandPalette({ open, onClose }: Props) {
                       href={`/dashboard/${orgSlug}/projects/${project.id}/kanban`}
                       onClick={() => handleSelect(debouncedQuery)}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
-                      <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <FolderOpen className="w-4 h-4 text-indigo-500" />
+                      <div className="w-7 h-7 bg-zinc-100 dark:bg-surface-elevated rounded-lg flex items-center justify-center flex-shrink-0">
+                        <FolderOpen className="w-4 h-4 text-zinc-500" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">

@@ -17,11 +17,12 @@ interface Props {
   placeholder?: string
   variant?: 'chip' | 'field'
   className?: string
+  triggerClassName?: string
   disabled?: boolean
 }
 
 export function SelectDropdown({
-  value, options, onChange, placeholder, variant = 'field', className, disabled,
+  value, options, onChange, placeholder, variant = 'field', className, triggerClassName, disabled,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -97,7 +98,7 @@ export function SelectDropdown({
       id={listboxId}
       aria-label="Options"
       style={{ position: 'fixed', top: coords.top, left: coords.left, minWidth: Math.max(coords.minWidth, 120), zIndex: 9999 }}
-      className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-600 overflow-hidden"
+      className="bg-white dark:bg-surface-card rounded-xl shadow-xl border border-gray-200 dark:border-white/[0.1] overflow-hidden"
     >
       {allOptions.map((opt, idx) => (
         <div
@@ -108,15 +109,15 @@ export function SelectDropdown({
           onMouseEnter={() => setActiveIndex(idx)}
           className={cn(
             'flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm cursor-pointer transition-colors whitespace-nowrap',
-            idx === activeIndex ? 'bg-indigo-50 dark:bg-indigo-900/30' : 'hover:bg-gray-50 dark:hover:bg-slate-700',
-            opt.value === value ? 'text-indigo-600 dark:text-indigo-400 font-medium' : opt.value === '' ? 'text-gray-400' : 'text-gray-700 dark:text-slate-200'
+            idx === activeIndex ? 'bg-zinc-100 dark:bg-surface-elevated' : 'hover:bg-gray-50 dark:hover:bg-surface-elevated',
+            opt.value === value ? 'text-zinc-900 dark:text-white font-medium' : opt.value === '' ? 'text-gray-400' : 'text-gray-700 dark:text-zinc-200'
           )}
         >
           <span className="flex items-center gap-2">
             {opt.color && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: opt.color }} />}
             {opt.label}
           </span>
-          {opt.value === value && opt.value !== '' && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" aria-hidden="true" />}
+          {opt.value === value && opt.value !== '' && <Check className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-100 flex-shrink-0" aria-hidden="true" />}
         </div>
       ))}
     </div>
@@ -134,19 +135,21 @@ export function SelectDropdown({
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
         className={cn(
-          'flex items-center gap-1.5 text-sm font-medium transition-colors disabled:opacity-50',
-          variant === 'chip'
-            ? cn(
-                'px-3 py-1.5 rounded-lg border',
-                isActive
-                  ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-600 dark:text-indigo-300'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'
-              )
-            : 'w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-gray-300 justify-between dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200'
+          'flex items-center gap-1.5 transition-colors disabled:opacity-50',
+          triggerClassName ?? (
+            variant === 'chip'
+              ? cn(
+                  'text-sm font-medium px-3 py-1.5 rounded-lg border',
+                  isActive
+                    ? 'bg-zinc-900 border-zinc-800 text-white dark:bg-zinc-100 dark:border-zinc-200 dark:text-zinc-900'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:bg-surface-elevated dark:border-white/[0.1] dark:text-zinc-300'
+                )
+              : 'text-sm font-medium w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-gray-300 justify-between dark:bg-surface-elevated dark:border-white/[0.1] dark:text-zinc-200'
+          )
         )}
       >
         <span className="truncate">{displayLabel}</span>
-        <ChevronDown className={cn('w-3.5 h-3.5 flex-shrink-0 transition-transform text-gray-400', open && 'rotate-180')} aria-hidden="true" />
+        <ChevronDown className={cn('w-3 h-3 flex-shrink-0 transition-transform opacity-50', open && 'rotate-180')} aria-hidden="true" />
       </button>
 
       {typeof window !== 'undefined' && createPortal(dropdown, document.body)}
