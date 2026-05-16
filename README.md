@@ -14,7 +14,7 @@ A production-grade, multi-tenant SaaS project management platform — built with
 | **Backend API** (Node.js / Express) | Render | https://projectflow-api-wijm.onrender.com |
 | **API Docs** (Swagger UI) | Render | https://projectflow-api-wijm.onrender.com/api/docs |
 | **Database** (MongoDB) | MongoDB Atlas (M0 free cluster) | — |
-| **Cache / Queue** (Redis) | Upstash | — |
+| **Cache / Queue** (Redis) | [Upstash](https://upstash.com) (free tier) | — |
 
 > All services run on free tiers. Render sleeps after 15 min of inactivity — first request after sleep takes ~30s.
 
