@@ -1,5 +1,7 @@
 # Database Schema — ProjectFlow
 
+> **Live deployment:** Database hosted on **MongoDB Atlas** (M0 free cluster). Schema is managed via Prisma — `prisma/schema.prisma` is the single source of truth.
+
 ## Entity Relationship Diagram
 
 ```mermaid

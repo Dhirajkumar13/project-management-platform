@@ -31,6 +31,7 @@ import myTasksRoutes from '@/routes/my-tasks.routes'
 import webhookRoutes from '@/routes/webhook.routes'
 
 const app = express()
+app.set('trust proxy', 1)
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   cors: {

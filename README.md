@@ -6,6 +6,20 @@ A production-grade, multi-tenant SaaS project management platform — built with
 
 ---
 
+## Live Deployment
+
+| Service | Platform | URL |
+|---------|----------|-----|
+| **Frontend** (Next.js 14) | Vercel | https://project-management-platform-web.vercel.app |
+| **Backend API** (Node.js / Express) | Render | https://projectflow-api-wijm.onrender.com |
+| **API Docs** (Swagger UI) | Render | https://projectflow-api-wijm.onrender.com/api/docs |
+| **Database** (MongoDB) | MongoDB Atlas (M0 free cluster) | — |
+| **Cache / Queue** (Redis) | Upstash | — |
+
+> All services run on free tiers. Render sleeps after 15 min of inactivity — first request after sleep takes ~30s.
+
+---
+
 ## Features
 
 ### Core
@@ -21,15 +35,6 @@ A production-grade, multi-tenant SaaS project management platform — built with
 - **Notifications** — real-time bell with unread count; mark individual or all-read
 - **Member invitations** — token-based email invites with role assignment
 - **Team members page** — manage roles and remove members
-
-### Bonus
-| Feature | Details |
-|---------|---------|
-| **Dark mode** | System / light / dark preference persisted in Zustand + localStorage. Premium surface hierarchy (`#0D1117 → #111318 → #1C1F26 → #22262F`) matching Linear/Vercel quality. |
-| **Audit trail** | Every org and project mutation recorded in `AuditLog`. Paginated viewer in Settings (ADMIN+ only). |
-| **Webhook system** | Outbound HTTP webhooks with HMAC-SHA256 signing, 11 event types, delivery log UI, secret rotation. |
-| **Performance** | `DashboardCharts` dynamically imported (code-split). TanStack Query tuned (`staleTime 30s`, `gcTime 5min`). App Router streaming skeletons on 4 routes for instant perceived load. |
-| **Accessibility** | WCAG 2.1 AA — focus trap in modals, `role="listbox"` keyboard navigation, skip-nav link, `:focus-visible` ring, `aria-label` on all icon-only controls. |
 
 ---
 
@@ -450,3 +455,88 @@ Upstash       → Redis (email queue)
 5. Deploy — Vercel auto-detects Next.js
 
 > **Note:** Render free tier sleeps after 15 min of inactivity. First request after sleep takes ~30s. Upgrade to a paid plan to keep it always-on.
+
+---
+
+## Bonus Features
+
+### 1. Dark Mode
+
+System-aware dark/light/system preference persisted via Zustand + localStorage. The `dark` class is toggled on `document.documentElement` by a `ThemeProvider` component. When preference is `system`, a `matchMedia` change listener updates the theme in real time without a page reload.
+
+Premium surface hierarchy matching Linear/Vercel quality:
+
+| Token | Hex | Use |
+|-------|-----|-----|
+| `surface-nav` | `#0D1117` | Sidebar background |
+| `surface-bg` | `#111318` | Page background |
+| `surface-card` | `#1C1F26` | Cards, table rows |
+| `surface-elevated` | `#22262F` | Modals, dropdowns, inputs |
+
+Toggle lives in the Sidebar, cycling `Sun → Moon → Monitor` icons.
+
+---
+
+### 2. Audit Trail
+
+Every significant org-level mutation is recorded in an `AuditLog` collection. Viewable in **Settings → Audit Log** (ADMIN+ only), paginated and sorted by time.
+
+| Event logged | Trigger |
+|---|---|
+| `project.created` | Project created |
+| `project.updated` | Project name/status changed |
+| `project.deleted` | Project soft-deleted |
+| `member.role_changed` | Member role updated |
+| `member.removed` | Member removed from org |
+
+---
+
+### 3. Webhook System
+
+Outbound HTTP webhooks with HMAC-SHA256 request signing. Managed in **Settings → Webhooks**.
+
+**11 supported events:** `task.created`, `task.updated`, `task.deleted`, `task.moved`, `comment.created`, `project.created`, `project.updated`, `project.deleted`, `member.added`, `member.removed`, `member.role_changed`
+
+Features:
+- Secret in `whsec_<48 hex>` format, shown only at creation time
+- Secret rotation via one-click button
+- Per-webhook pause/enable toggle
+- Delivery log showing status code, success/failure, and error per attempt
+- 10s timeout per delivery, fire-and-forget (never blocks the API response)
+
+Signature verification:
+```typescript
+import { createHmac, timingSafeEqual } from 'crypto'
+
+function verify(rawBody: string, signature: string, secret: string): boolean {
+  const expected = 'sha256=' + createHmac('sha256', secret).update(rawBody).digest('hex')
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+}
+```
+
+---
+
+### 4. Performance Optimizations
+
+| Optimization | Detail |
+|---|---|
+| **Dynamic imports** | `DashboardCharts` (Recharts) and `TaskDetailModal` are dynamically imported — not in the initial bundle |
+| **TanStack Query tuning** | `staleTime: 30s`, `gcTime: 5min`, `retry: 1`, `refetchOnWindowFocus: false` |
+| **App Router streaming skeletons** | 5 `loading.tsx` files with `animate-pulse` skeletons — content streams per segment, no full-page loading flash |
+| **Database indexes** | 12 compound indexes in `schema.prisma` covering kanban, list, my-tasks, audit log, and webhook trigger queries |
+| **Optimistic updates** | Kanban drag-and-drop uses `qc.setQueryData()` for instant UI response; reverts on error |
+
+---
+
+### 5. Accessibility (WCAG 2.1 AA)
+
+| Area | Implementation |
+|---|---|
+| **Focus trap** | `Modal.tsx` traps Tab/Shift+Tab, restores focus on close |
+| **Skip navigation** | `<a href="#main-content">` visible on focus in dashboard layout |
+| **SelectDropdown ARIA** | `role="combobox"`, `aria-haspopup="listbox"`, `role="option"`, `aria-selected`, `aria-activedescendant`, full keyboard nav (`↑↓ Enter Escape Home End`) |
+| **Keyboard DnD** | `@dnd-kit` `KeyboardSensor` — Space to grab, arrows to move, Space/Enter to drop |
+| **Icon-only buttons** | `aria-label` on every icon button, `aria-hidden` on SVG icons |
+| **Screen reader priority** | Colored priority dot + `<span className="sr-only">{priority} priority</span>` |
+| **Semantic HTML** | `<nav aria-label>`, `<th scope="col">`, `<ol>` for activity feeds, `<main id="main-content">` |
+| **Form errors** | `aria-invalid` + `aria-describedby` linking inputs to `role="alert"` error messages |
