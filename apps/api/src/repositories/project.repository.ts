@@ -1,10 +1,12 @@
 import { prisma } from '@/config/database'
+
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const
 import { ProjectStatus, Visibility, ProjectRole, Prisma } from '@prisma/client'
 import { PaginationParams } from '@/types'
 import { getSkip } from '@/utils/pagination'
 
 const projectInclude = {
-  _count: { select: { tasks: { where: { deletedAt: null } }, members: true } },
+  _count: { select: { tasks: { where: { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } }, members: true } },
   members: {
     take: 5,
     include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } },
@@ -25,7 +27,7 @@ export const projectRepository = {
 
   findById: (projectId: string, orgId: string) =>
     prisma.project.findFirst({
-      where: { id: projectId, organizationId: orgId, deletedAt: null },
+      where: { id: projectId, organizationId: orgId, ...notDeleted },
       include: {
         ...projectInclude,
         labels: true,
@@ -35,7 +37,7 @@ export const projectRepository = {
   list: async (orgId: string, params: PaginationParams & { status?: ProjectStatus }) => {
     const where: Prisma.ProjectWhereInput = {
       organizationId: orgId,
-      deletedAt: null,
+      OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
       ...(params.status && { status: params.status }),
       ...(params.search && {
         name: { contains: params.search, mode: 'insensitive' },
@@ -85,12 +87,12 @@ export const projectRepository = {
 
   getStats: async (projectId: string) => {
     const [total, completed, overdue] = await Promise.all([
-      prisma.task.count({ where: { projectId, deletedAt: null } }),
-      prisma.task.count({ where: { projectId, deletedAt: null, status: 'DONE' } }),
+      prisma.task.count({ where: { projectId, OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } }),
+      prisma.task.count({ where: { projectId, OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }], status: 'DONE' } }),
       prisma.task.count({
         where: {
           projectId,
-          deletedAt: null,
+          OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
           status: { not: 'DONE' },
           dueDate: { lt: new Date() },
         },
@@ -103,6 +105,12 @@ export const projectRepository = {
       overdueTasks: overdue,
     }
   },
+
+  getBurndownTasks: (projectId: string) =>
+    prisma.task.findMany({
+      where: { projectId, OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] },
+      select: { status: true, updatedAt: true },
+    }),
 
   createLabel: (data: { projectId: string; name: string; color?: string }) =>
     prisma.label.create({ data }),

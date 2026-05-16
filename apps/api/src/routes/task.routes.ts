@@ -186,10 +186,36 @@ router.get('/kanban', taskController.kanban)
 router.post('/', requireOrgRole('MEMBER'), validate(createTaskSchema), taskController.create)
 router.post('/bulk', requireOrgRole('MEMBER'), validate(bulkActionSchema), taskController.bulkAction)
 
+/**
+ * @swagger
+ * /organizations/{orgId}/projects/{projectId}/tasks/export:
+ *   get:
+ *     summary: Export all tasks as CSV
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: orgId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: CSV file download
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ */
 router.get('/export', async (req: AuthenticatedRequest, res) => {
   const { projectId } = req.params
   const tasks = await prisma.task.findMany({
-    where: { projectId, deletedAt: null },
+    where: { projectId, OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] },
     include: {
       assignees: { include: { user: { select: { name: true } } } },
       labels: { include: { label: true } },

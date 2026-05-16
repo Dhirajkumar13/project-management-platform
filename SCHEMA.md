@@ -175,6 +175,29 @@ erDiagram
         datetime createdAt
     }
 
+    Webhook {
+        string id PK
+        string organizationId FK
+        string name
+        string url
+        string secret
+        string[] events
+        boolean active
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    WebhookDelivery {
+        string id PK
+        string webhookId FK
+        string event
+        json payload
+        int statusCode
+        boolean success
+        string error
+        datetime createdAt
+    }
+
     RefreshToken {
         string id PK
         string token UK
@@ -208,6 +231,9 @@ erDiagram
     Organization ||--o{ Project : "owns"
     Organization ||--o{ AuditLog : "tracks"
     Organization ||--o{ Notification : "scopes"
+    Organization ||--o{ Webhook : "owns"
+
+    Webhook ||--o{ WebhookDelivery : "logs"
 
     Project ||--o{ ProjectMember : "has"
     Project ||--o{ Task : "contains"
@@ -255,7 +281,7 @@ OWNER (4) → full control including delete org
 ## Key Design Decisions
 
 ### Soft Deletes
-`User`, `Project`, `Task`, `TaskComment` use `deletedAt DateTime?`. Records are never hard-deleted via the API — all queries filter `deletedAt: null`. Cascade hard-deletes only happen when an Organization is permanently removed (owner-only action).
+`User`, `Project`, `Task`, `TaskComment` use `deletedAt DateTime?`. Records are never hard-deleted via the API — all queries must use the MongoDB-compatible filter `OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }]` (plain `deletedAt: null` misses documents where the field was never set). Cascade hard-deletes only happen when an Organization is permanently removed (owner-only action).
 
 ### Task Positioning (Float)
 `Task.position` uses `Float` instead of `Int` to enable fractional positioning for drag-and-drop without reindexing the entire column:

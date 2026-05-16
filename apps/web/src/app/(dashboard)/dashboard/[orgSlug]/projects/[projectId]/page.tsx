@@ -99,8 +99,24 @@ export default function ProjectDetailPage({
     enabled: !!orgId,
   })
 
-  if (projLoading) return <div className="flex-1 flex items-center justify-center"><Spinner /></div>
-  if (projError) return <div className="flex-1"><Header title="Project" backHref={`/dashboard/${params.orgSlug}/projects`} /><ErrorState onRetry={refetch} /></div>
+  const skeletonBadge = <div className="h-5 w-[4.5rem] rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse flex-shrink-0" />
+
+  if (projLoading) return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <Header
+        title="Loading…"
+        backHref={`/dashboard/${params.orgSlug}/projects`}
+        titleSuffix={skeletonBadge}
+      />
+      <div className="flex-1 flex items-center justify-center"><Spinner /></div>
+    </div>
+  )
+  if (projError) return (
+    <div className="flex-1 flex flex-col">
+      <Header title="Project" backHref={`/dashboard/${params.orgSlug}/projects`} />
+      <ErrorState onRetry={refetch} />
+    </div>
+  )
   if (!project) return null
 
   const stats = project.stats ?? { totalTasks: 0, completedTasks: 0, completionPercentage: 0, overdueTasks: 0 }
@@ -119,11 +135,9 @@ export default function ProjectDetailPage({
         title={project.name}
         backHref={`/dashboard/${params.orgSlug}/projects`}
         titleSuffix={
-          <ProjectStatusBadge
-            orgId={orgId!}
-            projectId={params.projectId}
-            status={project.status}
-          />
+          orgId
+            ? <ProjectStatusBadge orgId={orgId} projectId={params.projectId} status={project.status} />
+            : skeletonBadge
         }
       />
       <div className="p-6 space-y-6">

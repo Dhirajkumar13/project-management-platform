@@ -29,7 +29,7 @@ const updateSchema = z.object({
  * /organizations/{orgId}/webhooks:
  *   get:
  *     summary: List webhooks for an organization
- *     description: Returns all webhooks configured for the organization. The `secret` field is omitted from list responses — it is only returned on create and rotate-secret.
+ *     description: Returns all webhooks configured for the organization, including the signing secret and delivery count.
  *     tags: [Webhooks]
  *     parameters:
  *       - in: path
@@ -185,7 +185,10 @@ router.get('/events', (_req, res: Response) => {
  * /organizations/{orgId}/webhooks/{id}:
  *   patch:
  *     summary: Update a webhook
- *     description: Updates one or more fields of an existing webhook. All fields are optional — omitted fields are left unchanged. Pass `active: false` to temporarily disable delivery without deleting the webhook.
+ *     description: >
+ *       Updates one or more fields of an existing webhook. All fields are optional —
+ *       omitted fields are left unchanged. Set active to false to temporarily disable
+ *       delivery without deleting the webhook.
  *     tags: [Webhooks]
  *     parameters:
  *       - in: path
@@ -440,19 +443,19 @@ router.post('/:id/rotate-secret', requireOrgRole('ADMIN'), async (req: Authentic
  *         payload:
  *           type: object
  *           description: The JSON payload that was sent to the destination URL
- *         responseStatus:
+ *         statusCode:
  *           type: integer
  *           nullable: true
  *           description: HTTP status code received from the destination (null if connection failed)
  *           example: 200
- *         responseBody:
+ *         error:
  *           type: string
  *           nullable: true
- *           description: First 1000 characters of the response body from the destination
+ *           description: Error message if the delivery failed (connection error or non-2xx response)
  *         success:
  *           type: boolean
  *           description: True if the destination responded with a 2xx status within the 10s timeout
- *         deliveredAt:
+ *         createdAt:
  *           type: string
  *           format: date-time
  */

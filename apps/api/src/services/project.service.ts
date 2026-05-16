@@ -103,4 +103,42 @@ export const projectService = {
   deleteLabel: async (labelId: string) => {
     return projectRepository.deleteLabel(labelId)
   },
+
+  getBurndown: async (projectId: string, orgId: string) => {
+    const project = await projectRepository.findById(projectId, orgId)
+    if (!project) throw new AppError('Project not found', 404)
+
+    const tasks = await projectRepository.getBurndownTasks(projectId)
+    if (tasks.length === 0) return []
+
+    const totalTasks = tasks.length
+    const startDate = new Date(project.startDate ?? project.createdAt)
+    startDate.setHours(0, 0, 0, 0)
+
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+
+    const idealEnd = project.endDate
+      ? new Date(project.endDate)
+      : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const totalDays = Math.max(1, Math.ceil((idealEnd.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
+    const endDate = idealEnd < today ? idealEnd : today
+
+    const doneDates = tasks.filter((t) => t.status === 'DONE').map((t) => t.updatedAt)
+    const result: { date: string; remaining: number; ideal: number }[] = []
+    let current = new Date(startDate)
+
+    while (current <= endDate) {
+      const dayEnd = new Date(current)
+      dayEnd.setHours(23, 59, 59, 999)
+      const completed = doneDates.filter((d) => d <= dayEnd).length
+      const remaining = Math.max(0, totalTasks - completed)
+      const dayIndex = Math.ceil((current.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+      const ideal = Math.max(0, Math.round(totalTasks * (1 - dayIndex / totalDays)))
+      result.push({ date: current.toISOString().split('T')[0], remaining, ideal })
+      current = new Date(current.getTime() + 24 * 60 * 60 * 1000)
+    }
+
+    return result
+  },
 }

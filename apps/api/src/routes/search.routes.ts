@@ -68,15 +68,18 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
     return
   }
 
+  const notDeleted = [{ deletedAt: null }, { deletedAt: { isSet: false } }]
   const searchFilter = { contains: q, mode: 'insensitive' as const }
 
   const [tasks, projects, comments] = await Promise.all([
     type === 'all' || type === 'task'
       ? prisma.task.findMany({
           where: {
-            deletedAt: null,
+            AND: [
+              { OR: notDeleted },
+              { OR: [{ title: searchFilter }, { description: searchFilter }] },
+            ],
             ...(orgId && { project: { organizationId: orgId } }),
-            OR: [{ title: searchFilter }, { description: searchFilter }],
           },
           include: { project: { select: { id: true, name: true, organizationId: true } } },
           take: 10,
@@ -85,9 +88,11 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
     type === 'all' || type === 'project'
       ? prisma.project.findMany({
           where: {
-            deletedAt: null,
+            AND: [
+              { OR: notDeleted },
+              { OR: [{ name: searchFilter }, { description: searchFilter }] },
+            ],
             ...(orgId && { organizationId: orgId }),
-            OR: [{ name: searchFilter }, { description: searchFilter }],
           },
           take: 10,
         })
@@ -95,7 +100,7 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
     type === 'all' || type === 'comment'
       ? prisma.taskComment.findMany({
           where: {
-            deletedAt: null,
+            OR: notDeleted,
             content: searchFilter,
             ...(orgId && { task: { project: { organizationId: orgId } } }),
           },

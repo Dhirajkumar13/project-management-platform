@@ -8,6 +8,8 @@ import { AuthenticatedRequest } from '@/types'
 const router = Router()
 router.use(authenticate)
 
+const nd = [{ deletedAt: null }, { deletedAt: { isSet: false } }] as const
+
 /**
  * @swagger
  * /dashboard/{orgId}:
@@ -99,29 +101,29 @@ router.get('/:orgId', orgAccess, async (req: AuthenticatedRequest, res) => {
     recentActivity,
     members,
   ] = await Promise.all([
-    prisma.project.count({ where: { organizationId: orgId, deletedAt: null } }),
-    prisma.project.count({ where: { organizationId: orgId, deletedAt: null, status: 'ACTIVE' } }),
-    prisma.project.count({ where: { organizationId: orgId, deletedAt: null, status: 'COMPLETED' } }),
-    prisma.task.count({ where: { project: { organizationId: orgId }, deletedAt: null } }),
-    prisma.task.count({ where: { project: { organizationId: orgId }, deletedAt: null, status: { not: 'DONE' } } }),
+    prisma.project.count({ where: { organizationId: orgId, OR: nd } }),
+    prisma.project.count({ where: { organizationId: orgId, OR: nd, status: 'ACTIVE' } }),
+    prisma.project.count({ where: { organizationId: orgId, OR: nd, status: 'COMPLETED' } }),
+    prisma.task.count({ where: { project: { organizationId: orgId }, OR: nd } }),
+    prisma.task.count({ where: { project: { organizationId: orgId }, OR: nd, status: { not: 'DONE' } } }),
     prisma.task.count({
       where: {
         project: { organizationId: orgId },
-        deletedAt: null,
+        OR: nd,
         status: { not: 'DONE' },
         dueDate: { lt: new Date() },
       },
     }),
-    prisma.task.count({ where: { project: { organizationId: orgId }, deletedAt: null, status: 'DONE' } }),
+    prisma.task.count({ where: { project: { organizationId: orgId }, OR: nd, status: 'DONE' } }),
     prisma.organizationMember.count({ where: { organizationId: orgId } }),
     prisma.task.groupBy({
       by: ['status'],
-      where: { project: { organizationId: orgId }, deletedAt: null },
+      where: { project: { organizationId: orgId }, OR: nd },
       _count: true,
     }),
     prisma.task.groupBy({
       by: ['priority'],
-      where: { project: { organizationId: orgId }, deletedAt: null },
+      where: { project: { organizationId: orgId }, OR: nd },
       _count: true,
     }),
     prisma.taskActivity.findMany({
@@ -143,10 +145,10 @@ router.get('/:orgId', orgAccess, async (req: AuthenticatedRequest, res) => {
     members.map(async (m) => {
       const [assigned, completed] = await Promise.all([
         prisma.taskAssignee.count({
-          where: { userId: m.userId, task: { project: { organizationId: orgId }, deletedAt: null } },
+          where: { userId: m.userId, task: { project: { organizationId: orgId }, OR: nd } },
         }),
         prisma.taskAssignee.count({
-          where: { userId: m.userId, task: { project: { organizationId: orgId }, deletedAt: null, status: 'DONE' } },
+          where: { userId: m.userId, task: { project: { organizationId: orgId }, OR: nd, status: 'DONE' } },
         }),
       ])
       return { user: m.user, assignedCount: assigned, completedCount: completed }

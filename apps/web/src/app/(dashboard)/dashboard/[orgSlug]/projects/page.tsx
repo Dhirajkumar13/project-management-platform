@@ -131,7 +131,7 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
   return (
     <div className="flex-1 overflow-y-auto">
       <Header title="Projects" />
-      <div className="p-5">
+      <div className="p-6">
         {/* Toolbar */}
         <div className="flex items-center gap-3 mb-4">
           <div className="relative flex-1 max-w-xs">

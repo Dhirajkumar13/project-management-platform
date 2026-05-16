@@ -132,9 +132,13 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
         title={project?.name ?? 'Task List'}
         subtitle={project ? 'Task List' : undefined}
         backHref={`/dashboard/${params.orgSlug}/projects/${params.projectId}`}
-        titleSuffix={project && currentOrg?.id ? (
-          <ProjectStatusBadge orgId={currentOrg.id} projectId={params.projectId} status={project.status ?? 'ACTIVE'} />
-        ) : undefined}
+        titleSuffix={
+          currentOrg?.id
+            ? project
+              ? <ProjectStatusBadge orgId={currentOrg.id} projectId={params.projectId} status={project.status ?? 'ACTIVE'} />
+              : <div className="h-5 w-[4.5rem] rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse flex-shrink-0" />
+            : undefined
+        }
       />
       <div className="p-6">
         {/* Toolbar */}
@@ -252,7 +256,6 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
                           className="rounded border-gray-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer" />
                       </td>
                     )}
-                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', PRIORITY_DOTS[task.priority])} />

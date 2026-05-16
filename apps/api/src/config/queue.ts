@@ -47,7 +47,7 @@ emailQueue.process(async (job) => {
       const now = new Date()
       const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
       const tasks = await prisma.task.findMany({
-        where: { dueDate: { gte: now, lte: in24h }, status: { not: 'DONE' }, deletedAt: null },
+        where: { dueDate: { gte: now, lte: in24h }, status: { not: 'DONE' }, OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] },
         include: {
           project: { select: { name: true } },
           assignees: { include: { user: { select: { email: true, notificationPrefs: true } } } },

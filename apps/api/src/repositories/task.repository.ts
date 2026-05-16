@@ -1,4 +1,6 @@
 import { prisma } from '@/config/database'
+
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const
 import { TaskStatus, Priority, Prisma } from '@prisma/client'
 import { PaginationParams } from '@/types'
 import { getSkip } from '@/utils/pagination'
@@ -9,7 +11,7 @@ const taskInclude = {
   },
   labels: { include: { label: true } },
   subtasks: { orderBy: { position: 'asc' as const } },
-  _count: { select: { comments: { where: { deletedAt: null } }, attachments: true } },
+  _count: { select: { comments: { where: { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } }, attachments: true } },
 }
 
 export const taskRepository = {
@@ -26,7 +28,7 @@ export const taskRepository = {
 
   findById: (taskId: string, projectId: string) =>
     prisma.task.findFirst({
-      where: { id: taskId, projectId, deletedAt: null },
+      where: { id: taskId, projectId, ...notDeleted },
       include: taskInclude,
     }),
 
@@ -38,7 +40,7 @@ export const taskRepository = {
   }) => {
     const where: Prisma.TaskWhereInput = {
       projectId,
-      deletedAt: null,
+      OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
       ...(params.status && { status: params.status }),
       ...(params.priority && { priority: params.priority }),
       ...(params.assigneeId && { assignees: { some: { userId: params.assigneeId } } }),
@@ -61,7 +63,7 @@ export const taskRepository = {
   getKanbanBoard: async (projectId: string, filters: { assigneeId?: string; labelId?: string; priority?: Priority }) => {
     const where: Prisma.TaskWhereInput = {
       projectId,
-      deletedAt: null,
+      OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
       ...(filters.assigneeId && { assignees: { some: { userId: filters.assigneeId } } }),
       ...(filters.labelId && { labels: { some: { labelId: filters.labelId } } }),
       ...(filters.priority && { priority: filters.priority }),
@@ -121,7 +123,7 @@ export const taskRepository = {
 
   getComments: (taskId: string, params: PaginationParams) =>
     prisma.taskComment.findMany({
-      where: { taskId, deletedAt: null },
+      where: { taskId, OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] },
       include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } },
       skip: getSkip(params.page, params.limit),
       take: params.limit,
@@ -129,7 +131,7 @@ export const taskRepository = {
     }),
 
   getCommentsCount: (taskId: string) =>
-    prisma.taskComment.count({ where: { taskId, deletedAt: null } }),
+    prisma.taskComment.count({ where: { taskId, OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } }),
 
   deleteComment: (commentId: string) =>
     prisma.taskComment.update({ where: { id: commentId }, data: { deletedAt: new Date() } }),

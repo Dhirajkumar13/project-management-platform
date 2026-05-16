@@ -1,8 +1,8 @@
 # ProjectFlow
 
-A production-grade, multi-tenant SaaS project management platform — built with Next.js 14, Node.js/Express, PostgreSQL, Redis, and Socket.IO.
+A production-grade, multi-tenant SaaS project management platform — built with Next.js 14, Node.js/Express, MongoDB, Redis, and Socket.IO.
 
-> **Demo:** `admin@demo.com` / `member@demo.com` / `viewer@demo.com` — all use `password123`
+> **Demo:** `admin@demo.com` / `manager@demo.com` / `member@demo.com` / `viewer@demo.com` — all use `password123`
 
 ---
 
@@ -39,7 +39,7 @@ A production-grade, multi-tenant SaaS project management platform — built with
 | Concern | Library |
 |---------|---------|
 | HTTP server | Express + express-async-errors |
-| ORM | Prisma + PostgreSQL |
+| ORM | Prisma + MongoDB |
 | Cache / rate limit | ioredis (Redis) |
 | Real-time | Socket.IO |
 | Auth | JWT (access 15m + refresh 7d, HTTP-only cookie) |
@@ -67,23 +67,24 @@ A production-grade, multi-tenant SaaS project management platform — built with
 
 ### Prerequisites
 - Node.js 18+
-- Docker (PostgreSQL)
+- Docker (MongoDB)
 - Redis on `localhost:6379`
 
 ### 1. Start infrastructure
 
 **First time only:**
 ```bash
-docker run -d --name project-postgres \
-  -e POSTGRES_USER=project_user \
-  -e POSTGRES_PASSWORD=project_pass \
-  -e POSTGRES_DB=project_mgmt \
-  -p 5433:5432 postgres:14-alpine
+# Start MongoDB with replica set (required by Prisma for transactions)
+docker run -d --name project-mongo -p 27018:27017 mongo:7 --replSet rs0
+
+# Initialize the replica set
+docker exec project-mongo mongosh --eval \
+  'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
 ```
 
 **Subsequent starts:**
 ```bash
-docker start project-postgres
+docker start project-mongo
 ```
 
 ### 2. Backend
@@ -123,7 +124,7 @@ npm run dev
 ### Backend — Clean Architecture
 
 ```
-Controllers → Services → Repositories → Prisma (PostgreSQL)
+Controllers → Services → Repositories → Prisma (MongoDB)
 ```
 
 | Layer | Responsibility |
@@ -304,11 +305,11 @@ Full interactive docs at **http://localhost:3001/api/docs**
 | `task.created` | A new task is created |
 | `task.updated` | Any task field changes |
 | `task.deleted` | A task is soft-deleted |
-| `task.assigned` | A user is added as an assignee |
-| `member.invited` | A user is invited to the organization |
-| `member.removed` | A member is removed |
+| `task.moved` | A task is moved between columns or reordered |
 | `comment.created` | A comment is posted on a task |
-| `webhook.test` | Manual test delivery from the UI |
+| `member.added` | A member joins the organization (invite accepted) |
+| `member.removed` | A member is removed from the organization |
+| `member.role_changed` | A member's role is updated |
 
 ### Request Format
 
@@ -353,7 +354,7 @@ Deliveries that fail (non-2xx or timeout after 10s) are logged but not retried �
 
 ```env
 # apps/api/.env
-DATABASE_URL="postgresql://project_user:project_pass@localhost:5433/project_mgmt"
+DATABASE_URL="mongodb://127.0.0.1:27018/project_mgmt?directConnection=true&replicaSet=rs0"
 REDIS_URL="redis://localhost:6379"
 JWT_SECRET="min-32-chars-secret"
 JWT_REFRESH_SECRET="min-32-chars-secret"

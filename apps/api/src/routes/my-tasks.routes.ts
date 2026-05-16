@@ -38,7 +38,7 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
     where: {
       userId,
       task: {
-        deletedAt: null,
+        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
         ...(status && { status }),
         ...(orgId && { project: { organizationId: orgId } }),
       },

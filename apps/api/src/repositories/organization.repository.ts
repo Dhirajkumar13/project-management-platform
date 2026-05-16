@@ -1,4 +1,6 @@
 import { prisma } from '@/config/database'
+
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const
 import { OrgRole, Prisma } from '@prisma/client'
 import { PaginationParams } from '@/types'
 import { getSkip } from '@/utils/pagination'
@@ -15,14 +17,14 @@ export const organizationRepository = {
 
   findById: (id: string) =>
     prisma.organization.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, ...notDeleted },
       include: {
         _count: { select: { members: true, projects: true } },
       },
     }),
 
   findBySlug: (slug: string) =>
-    prisma.organization.findFirst({ where: { slug, deletedAt: null } }),
+    prisma.organization.findFirst({ where: { slug, ...notDeleted } }),
 
   update: (id: string, data: Prisma.OrganizationUpdateInput) =>
     prisma.organization.update({ where: { id }, data }),
@@ -32,7 +34,7 @@ export const organizationRepository = {
 
   getUserOrgs: (userId: string) =>
     prisma.organizationMember.findMany({
-      where: { userId, organization: { deletedAt: null } },
+      where: { userId, organization: { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } },
       include: {
         organization: {
           include: { _count: { select: { members: true, projects: true } } },

@@ -18,7 +18,7 @@ export const taskService = {
     labelIds?: string[]
   }) => {
     const lastTask = await prisma.task.findFirst({
-      where: { projectId, status: data.status || 'BACKLOG', deletedAt: null },
+      where: { projectId, status: data.status || 'BACKLOG', OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] },
       orderBy: { position: 'desc' },
       select: { position: true },
     })

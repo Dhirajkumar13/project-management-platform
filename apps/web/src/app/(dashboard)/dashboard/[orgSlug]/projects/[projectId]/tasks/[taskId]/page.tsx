@@ -190,12 +190,16 @@ export default function TaskDetailPage({ params }: { params: { orgSlug: string; 
     setEditingPoints(false)
   }
 
+  const skeletonBadge = <div className="h-5 w-[4.5rem] rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse flex-shrink-0" />
+
   if (isLoading || !task) {
     return (
       <div className="flex-1 flex flex-col">
         <Header
           title={project?.name ?? 'Task'}
+          subtitle="Task Detail"
           backHref={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
+          titleSuffix={skeletonBadge}
         />
         <div className="flex-1 flex items-center justify-center"><Spinner /></div>
       </div>
@@ -216,9 +220,11 @@ export default function TaskDetailPage({ params }: { params: { orgSlug: string; 
         title={project?.name ?? 'Task'}
         subtitle="Task Detail"
         backHref={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
-        titleSuffix={project && currentOrg ? (
-          <ProjectStatusBadge orgId={orgId} projectId={params.projectId} status={project.status} />
-        ) : undefined}
+        titleSuffix={
+          project && currentOrg
+            ? <ProjectStatusBadge orgId={orgId} projectId={params.projectId} status={project.status} />
+            : skeletonBadge
+        }
       />
 
       <div className="flex flex-1 min-h-0 overflow-hidden">

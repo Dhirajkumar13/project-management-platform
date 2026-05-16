@@ -1,13 +1,15 @@
 import { prisma } from '@/config/database'
 import { Prisma } from '@prisma/client'
 
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const
+
 export const authRepository = {
   findUserByEmail: (email: string) =>
-    prisma.user.findFirst({ where: { email, deletedAt: null } }),
+    prisma.user.findFirst({ where: { email, ...notDeleted } }),
 
   findUserById: (id: string) =>
     prisma.user.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, ...notDeleted },
       include: {
         orgMemberships: {
           include: { organization: { select: { id: true, name: true, slug: true, logoUrl: true } } },

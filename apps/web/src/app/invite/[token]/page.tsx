@@ -21,7 +21,7 @@ export default function AcceptInvitePage({ params }: { params: { token: string }
   const mutation = useMutation({
     mutationFn: () => api.post(`/organizations/invites/${params.token}/accept`),
     onSuccess: (res) => {
-      const org = res.data.data?.organization
+      const org = res.data.data
       if (org) setCurrentOrg(org)
       toast.success('Welcome! You have joined the organization.')
       router.push('/dashboard')

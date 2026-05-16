@@ -48,7 +48,7 @@ export default function OrgDashboardPage({ params }: { params: { orgSlug: string
   return (
     <div className="flex-1 overflow-y-auto">
       <Header title={`${currentOrg?.name}`} subtitle="Overview" />
-      <div className="p-5 space-y-4">
+      <div className="p-6 space-y-4">
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {statCards.map((card) => (

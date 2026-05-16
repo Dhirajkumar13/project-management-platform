@@ -48,13 +48,13 @@ function ResetForm() {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
         <input {...register('password')} type="password" placeholder="At least 8 characters"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400" />
         {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
         <input {...register('confirm')} type="password" placeholder="Repeat password"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400" />
         {errors.confirm && <p className="text-red-500 text-xs mt-1">{errors.confirm.message}</p>}
       </div>
       <Button type="submit" className="w-full" loading={isSubmitting || mutation.isPending}>

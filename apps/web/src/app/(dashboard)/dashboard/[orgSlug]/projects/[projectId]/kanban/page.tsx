@@ -295,19 +295,29 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
     moveMutation.mutate({ taskId: active.id as string, status: destStatus, position: newPosition })
   }, [board, projectId, qc, moveMutation])
 
-  if (isLoading) return <div className="flex-1 flex items-center justify-center"><div className="animate-spin h-6 w-6 border-2 border-zinc-900 dark:border-zinc-100 rounded-full border-t-transparent" /></div>
   const backHref = `/dashboard/${params.orgSlug}/projects/${projectId}`
 
-  const statusBadge = project && orgId ? (
-    <ProjectStatusBadge orgId={orgId} projectId={projectId} status={project.status ?? 'ACTIVE'} />
-  ) : null
+  const statusBadge = orgId
+    ? project
+      ? <ProjectStatusBadge orgId={orgId} projectId={projectId} status={project.status ?? 'ACTIVE'} />
+      : <div className="h-5 w-[4.5rem] rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse flex-shrink-0" />
+    : null
 
-  if (isError) return <div className="flex-1"><Header title={project?.name ?? 'Kanban Board'} subtitle={project ? 'Kanban Board' : undefined} backHref={backHref} /><ErrorState onRetry={refetch} /></div>
+  if (isLoading) return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <Header title="Kanban Board" subtitle="Kanban Board" backHref={backHref} titleSuffix={statusBadge} />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-spin h-6 w-6 border-2 border-zinc-900 dark:border-zinc-100 rounded-full border-t-transparent" />
+      </div>
+    </div>
+  )
+
+  if (isError) return <div className="flex-1 flex flex-col"><Header title={project?.name ?? 'Kanban Board'} subtitle="Kanban Board" backHref={backHref} titleSuffix={statusBadge} /><ErrorState onRetry={refetch} /></div>
   if (!board || !activeBoard) return null
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <Header title={project?.name ?? 'Kanban Board'} subtitle={project ? 'Kanban Board' : undefined} backHref={backHref} titleSuffix={statusBadge} />
+      <Header title={project?.name ?? 'Kanban Board'} subtitle="Kanban Board" backHref={backHref} titleSuffix={statusBadge} />
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-surface-bg flex-shrink-0 flex-wrap">

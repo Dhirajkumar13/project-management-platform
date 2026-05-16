@@ -1,8 +1,8 @@
 export default function ProjectsLoading() {
   return (
     <div className="flex-1 overflow-y-auto animate-pulse">
-      <div className="h-12 bg-gray-100 dark:bg-surface-card border-b border-gray-100 dark:border-white/5" />
-      <div className="p-5">
+      <div className="h-14 bg-gray-100 dark:bg-surface-card border-b border-gray-100 dark:border-white/5" />
+      <div className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="h-9 w-48 rounded-lg bg-gray-100 dark:bg-surface-card" />
           <div className="h-9 w-72 rounded-lg bg-gray-100 dark:bg-surface-card" />

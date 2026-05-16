@@ -66,7 +66,7 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
   }
 
   return (
-    <header className="h-12 bg-white dark:bg-surface-bg border-b border-gray-100 dark:border-white/5 flex items-center justify-between px-5 flex-shrink-0">
+    <header className="min-h-[3.5rem] bg-white dark:bg-surface-bg border-b border-gray-100 dark:border-white/5 flex items-center justify-between px-5 flex-shrink-0 py-2">
       <div className="flex items-center gap-2.5 min-w-0">
         {backHref && (
           <button
@@ -78,11 +78,16 @@ export function Header({ title, subtitle, backHref, titleSuffix }: {
           </button>
         )}
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">{title}</h1>
-            {titleSuffix}
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate leading-snug">{title}</h1>
+            {/* Fixed-width wrapper prevents CLS when badge mounts/unmounts */}
+            <div className="flex items-center flex-shrink-0 min-w-0">
+              {titleSuffix}
+            </div>
           </div>
-          {subtitle && <p className="text-[11px] text-gray-400 dark:text-zinc-500 -mt-px">{subtitle}</p>}
+          {subtitle && (
+            <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5 leading-none">{subtitle}</p>
+          )}
         </div>
       </div>
 
