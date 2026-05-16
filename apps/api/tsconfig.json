@@ -15,8 +15,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "ignoreDeprecations": "5.0"
   },
-  "include": ["src/**/*", "prisma/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "prisma"]
 }
