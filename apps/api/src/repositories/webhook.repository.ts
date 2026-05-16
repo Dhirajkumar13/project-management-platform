@@ -1,4 +1,5 @@
 import { prisma } from '@/config/database'
+import { Prisma } from '@prisma/client'
 
 export const webhookRepository = {
   create: (data: {
@@ -38,7 +39,7 @@ export const webhookRepository = {
   createDelivery: (data: {
     webhookId: string
     event: string
-    payload: Record<string, unknown>
+    payload: Prisma.InputJsonValue
     statusCode?: number
     success: boolean
     error?: string

@@ -374,7 +374,7 @@ SMTP_PASS="your-smtp-password"
 SMTP_FROM="ProjectFlow <noreply@example.com>"
 ```
 
-> **Frontend:** The API base URL is set in `apps/web/src/lib/api.ts`. Update it for production or set `NEXT_PUBLIC_API_URL`.
+> **Frontend:** Set `NEXT_PUBLIC_API_URL` to the full API base path (e.g. `https://projectflow-api.onrender.com/api/v1`). Falls back to `http://localhost:3001/api/v1` in development. The Socket.IO URL is derived automatically by stripping `/api/v1`.
 
 ---
 

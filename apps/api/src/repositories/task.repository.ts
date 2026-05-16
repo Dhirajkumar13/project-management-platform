@@ -1,6 +1,6 @@
 import { prisma } from '@/config/database'
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] }
 import { TaskStatus, Priority, Prisma } from '@prisma/client'
 import { PaginationParams } from '@/types'
 import { getSkip } from '@/utils/pagination'

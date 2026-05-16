@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+import { Prisma } from '@prisma/client'
 import { organizationRepository } from '@/repositories/organization.repository'
 import { AppError } from '@/middleware/error'
 import { sendInviteEmail } from '@/utils/email'
@@ -23,7 +24,7 @@ export const organizationService = {
     return org
   },
 
-  update: async (orgId: string, data: { name?: string; logoUrl?: string; billingInfo?: Record<string, unknown> }) => {
+  update: async (orgId: string, data: { name?: string; logoUrl?: string; billingInfo?: Prisma.InputJsonValue }) => {
     return organizationRepository.update(orgId, data)
   },
 

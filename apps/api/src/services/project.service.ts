@@ -1,6 +1,6 @@
 import { projectRepository } from '@/repositories/project.repository'
 import { AppError } from '@/middleware/error'
-import { ProjectStatus, Visibility, ProjectRole } from '@prisma/client'
+import { ProjectStatus, Visibility, ProjectRole, Prisma } from '@prisma/client'
 import { PaginationParams } from '@/types'
 import { organizationRepository } from '@/repositories/organization.repository'
 import { webhookService } from '@/services/webhook.service'
@@ -59,7 +59,7 @@ export const projectService = {
     })
     await organizationRepository.createAuditLog({
       organizationId: orgId, userId, action: 'project.updated',
-      entityType: 'project', entityId: projectId, metadata: data as Record<string, unknown>,
+      entityType: 'project', entityId: projectId, metadata: data as unknown as Prisma.InputJsonValue,
     })
     webhookService.trigger(orgId, 'project.updated', { projectId, changes: data }).catch(() => {})
     return updated

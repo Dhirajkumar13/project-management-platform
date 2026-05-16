@@ -1,6 +1,6 @@
 import { prisma } from '@/config/database'
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] }
 import { OrgRole, Prisma } from '@prisma/client'
 import { PaginationParams } from '@/types'
 import { getSkip } from '@/utils/pagination'
@@ -114,6 +114,6 @@ export const organizationRepository = {
     action: string
     entityType: string
     entityId: string
-    metadata?: Record<string, unknown>
+    metadata?: Prisma.InputJsonValue
   }) => prisma.auditLog.create({ data }),
 }

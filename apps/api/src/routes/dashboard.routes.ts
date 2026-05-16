@@ -8,7 +8,7 @@ import { AuthenticatedRequest } from '@/types'
 const router = Router()
 router.use(authenticate)
 
-const nd = [{ deletedAt: null }, { deletedAt: { isSet: false } }] as const
+const nd = [{ deletedAt: null }, { deletedAt: { isSet: false } }]
 
 /**
  * @swagger

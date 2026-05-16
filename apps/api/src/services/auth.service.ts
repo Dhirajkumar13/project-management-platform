@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import { Prisma } from '@prisma/client'
 import { v4 as uuidv4 } from 'uuid'
 import { authRepository } from '@/repositories/auth.repository'
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '@/utils/jwt'
@@ -112,7 +113,7 @@ export const authService = {
     return user
   },
 
-  updateProfile: async (userId: string, data: { name?: string; timezone?: string; avatarUrl?: string; notificationPrefs?: unknown }) => {
+  updateProfile: async (userId: string, data: { name?: string; timezone?: string; avatarUrl?: string; notificationPrefs?: Prisma.InputJsonValue }) => {
     return authRepository.updateUser(userId, data)
   },
 

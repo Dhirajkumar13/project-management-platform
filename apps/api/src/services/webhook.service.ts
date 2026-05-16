@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { Prisma } from '@prisma/client'
 import { webhookRepository } from '@/repositories/webhook.repository'
 import { AppError } from '@/middleware/error'
 import { logger } from '@/config/logger'
@@ -108,7 +109,7 @@ export const webhookService = {
         await webhookRepository.createDelivery({
           webhookId: wh.id,
           event,
-          payload: { event, data: payload } as Record<string, unknown>,
+          payload: { event, data: payload } as unknown as Prisma.InputJsonValue,
           statusCode,
           success,
           error,

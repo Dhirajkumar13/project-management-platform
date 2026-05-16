@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database'
 import { Prisma } from '@prisma/client'
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] }
 
 export const authRepository = {
   findUserByEmail: (email: string) =>

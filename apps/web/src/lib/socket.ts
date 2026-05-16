@@ -4,7 +4,9 @@ let socket: Socket | null = null
 
 export const connectSocket = (token: string): Socket => {
   if (socket?.connected) return socket
-  socket = io('http://localhost:3001', {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1'
+  const socketUrl = apiUrl.replace('/api/v1', '')
+  socket = io(socketUrl, {
     auth: { token },
     transports: ['websocket'],
     reconnection: true,

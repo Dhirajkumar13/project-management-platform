@@ -41,7 +41,7 @@ emailQueue.process(async (job) => {
       await sendInviteEmail(data.to, data.orgName, data.inviterName, data.inviteToken)
       break
     case 'due_date_reminder':
-      await sendDueDateReminderEmail(data.to, data.taskTitle, data.dueDate, data.projectName)
+      await sendDueDateReminderEmail(data.to, data.taskTitle, new Date(data.dueDate))
       break
     case 'due_date_cron': {
       const now = new Date()
