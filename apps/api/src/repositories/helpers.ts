@@ -3,4 +3,4 @@
 // is missing (not yet set), which is the case for all newly created records.
 export const notDeleted = {
   OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
-} as const
+}
