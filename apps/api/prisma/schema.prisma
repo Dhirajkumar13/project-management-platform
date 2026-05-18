@@ -177,6 +177,7 @@ model Task {
   description String?
   status      TaskStatus @default(BACKLOG)
   priority    Priority   @default(MEDIUM)
+  startDate   DateTime?
   dueDate     DateTime?
   storyPoints Int?
   position    Float      @default(0)

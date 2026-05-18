@@ -79,6 +79,7 @@ export interface Task {
   description?: string
   status: TaskStatus
   priority: Priority
+  startDate?: string
   dueDate?: string
   storyPoints?: number
   position: number

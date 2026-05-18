@@ -32,7 +32,10 @@ const schema = z.object({
   visibility: z.enum(['PRIVATE', 'PUBLIC']).default('PRIVATE'),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-})
+}).refine(
+  (d) => !d.startDate || !d.endDate || new Date(d.endDate) >= new Date(d.startDate),
+  { message: 'End date must be on or after start date', path: ['endDate'] }
+)
 type FormData = z.infer<typeof schema>
 
 function ProjectCard({ project, orgSlug }: { project: Project; orgSlug: string }) {
@@ -114,16 +117,23 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
       )
     : rawData
 
+  const today = new Date().toISOString().split('T')[0]
+
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: { startDate: today },
   })
 
   const createMutation = useMutation({
-    mutationFn: (d: FormData) => api.post(`/organizations/${currentOrg!.id}/projects`, d),
+    mutationFn: (d: FormData) => api.post(`/organizations/${currentOrg!.id}/projects`, {
+      ...d,
+      startDate: d.startDate ? new Date(d.startDate).toISOString() : undefined,
+      endDate: d.endDate ? new Date(d.endDate).toISOString() : undefined,
+    }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['projects'] })
       setShowCreate(false)
-      reset()
+      reset({ startDate: today })
       toast.success('Project created!')
     },
     onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'project', role: currentOrg?.role })),
@@ -190,14 +200,17 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
         )}
       </div>
 
-      <Modal isOpen={showCreate} onClose={() => { setShowCreate(false); reset() }} title="Create Project">
+      <Modal isOpen={showCreate} onClose={() => { setShowCreate(false); reset({ startDate: today }) }} title="Create Project">
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="px-5 pb-5 pt-4 space-y-4">
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Name *</label>
             <input
               {...register('name')}
               placeholder="Project name"
-              className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20"
+              className={cn(
+                'w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20',
+                errors.name ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-white/[0.1]'
+              )}
             />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
           </div>
@@ -216,16 +229,24 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
               <input
                 {...register('startDate')}
                 type="date"
-                className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20"
+                className={cn(
+                  'w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20',
+                  errors.startDate ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-white/[0.1]'
+                )}
               />
+              {errors.startDate && <p className="text-red-500 text-xs mt-1">{errors.startDate.message}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">End Date</label>
               <input
                 {...register('endDate')}
                 type="date"
-                className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20"
+                className={cn(
+                  'w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20',
+                  errors.endDate ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-white/[0.1]'
+                )}
               />
+              {errors.endDate && <p className="text-red-500 text-xs mt-1">{errors.endDate.message}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -256,7 +277,7 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" type="button" onClick={() => { setShowCreate(false); reset() }}>Cancel</Button>
+            <Button variant="outline" type="button" onClick={() => { setShowCreate(false); reset({ startDate: today }) }}>Cancel</Button>
             <Button type="submit" loading={isSubmitting || createMutation.isPending}>Create</Button>
           </div>
         </form>

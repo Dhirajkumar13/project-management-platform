@@ -78,7 +78,8 @@ export const taskService = {
     description?: string
     status?: TaskStatus
     priority?: Priority
-    dueDate?: string
+    startDate?: string | null
+    dueDate?: string | null
     storyPoints?: number
   }) => {
     const existing = await taskRepository.findById(taskId, projectId)
@@ -97,7 +98,8 @@ export const taskService = {
 
     const updated = await taskRepository.update(taskId, {
       ...data,
-      dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+      startDate: data.startDate ? new Date(data.startDate) : data.startDate === null ? null : undefined,
+      dueDate: data.dueDate ? new Date(data.dueDate) : data.dueDate === null ? null : undefined,
     })
 
     for (const u of updates) {

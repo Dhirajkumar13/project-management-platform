@@ -22,6 +22,18 @@ export const projectService = {
       endDate: data.endDate ? new Date(data.endDate) : undefined,
     })
     await projectRepository.addMember(project.id, userId, 'LEAD')
+
+    const DEFAULT_LABELS = [
+      { name: 'Bug',         color: '#ef4444' },
+      { name: 'Feature',     color: '#6366f1' },
+      { name: 'Enhancement', color: '#3b82f6' },
+      { name: 'Task',        color: '#10b981' },
+      { name: 'Documentation', color: '#f59e0b' },
+      { name: 'Design',      color: '#ec4899' },
+    ]
+    await Promise.all(
+      DEFAULT_LABELS.map((l) => projectRepository.createLabel({ projectId: project.id, ...l }))
+    )
     await organizationRepository.createAuditLog({
       organizationId: orgId, userId, action: 'project.created',
       entityType: 'project', entityId: project.id, metadata: { name: project.name },

@@ -13,13 +13,26 @@ import { ProjectStatusBadge } from '@/components/ui/ProjectStatusBadge'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import api from '@/lib/api'
-import { Project, Task, ProjectMember, TaskStatus } from '@/types'
+import { Project, Task, ProjectMember, TaskStatus, Label, OrgMember, ProjectRole } from '@/types'
 import { cn, STATUS_COLORS, STATUS_LABELS, formatDate, hasOrgRole } from '@/lib/utils'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
-import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, List, TrendingDown, LayoutDashboard, LayoutGrid, ArrowRight, Pencil, Trash2 } from 'lucide-react'
+import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, List, TrendingDown, LayoutDashboard, LayoutGrid, ArrowRight, Pencil, Trash2, Plus, Tag, X } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '@/lib/errors'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { SelectDropdown } from '@/components/ui/SelectDropdown'
+
+const createTaskSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
+  status: z.enum(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE']).default('BACKLOG'),
+  dueDate: z.string().optional(),
+})
+type CreateTaskForm = z.infer<typeof createTaskSchema>
 
 const PIE_COLORS = ['#71717a', '#3b82f6', '#2563eb', '#f59e0b', '#10b981']
 const STATUS_ORDER: TaskStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE']
@@ -39,6 +52,30 @@ export default function ProjectDetailPage({
   const [editForm, setEditForm] = useState({ name: '', description: '', startDate: '', endDate: '' })
   const [showDelete, setShowDelete] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [showCreateTask, setShowCreateTask] = useState(false)
+  const [selectedTaskLabelIds, setSelectedTaskLabelIds] = useState<string[]>([])
+
+  const { register: regTask, handleSubmit: handleTask, reset: resetTask, watch: watchTask, setValue: setTaskVal, formState: { errors: taskErrors, isSubmitting: taskSubmitting } } = useForm<CreateTaskForm>({
+    resolver: zodResolver(createTaskSchema),
+    defaultValues: { priority: 'MEDIUM', status: 'BACKLOG' },
+  })
+
+  const createTaskMutation = useMutation({
+    mutationFn: (d: CreateTaskForm) => api.post(`/organizations/${orgId}/projects/${params.projectId}/tasks`, {
+      ...d,
+      dueDate: d.dueDate ? new Date(d.dueDate).toISOString() : undefined,
+      labelIds: selectedTaskLabelIds,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks-all', orgId, params.projectId] })
+      qc.invalidateQueries({ queryKey: ['project', orgId, params.projectId] })
+      setShowCreateTask(false)
+      resetTask()
+      setSelectedTaskLabelIds([])
+      toast.success('Task created!')
+    },
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'task', role })),
+  })
 
   useProjectSocket(params.projectId, orgId ?? '')
 
@@ -98,6 +135,62 @@ export default function ProjectDetailPage({
       api.get(`/organizations/${orgId}/projects/${params.projectId}/burndown`)
         .then((r) => r.data.data as { date: string; remaining: number; ideal: number }[]),
     enabled: !!orgId,
+  })
+
+  const { data: labels, refetch: refetchLabels } = useQuery({
+    queryKey: ['project-labels', orgId, params.projectId],
+    queryFn: () =>
+      api.get(`/organizations/${orgId}/projects/${params.projectId}/labels`)
+        .then((r) => r.data.data as Label[]),
+    enabled: !!orgId,
+  })
+
+  const { data: orgMembers } = useQuery({
+    queryKey: ['org-members', orgId],
+    queryFn: () =>
+      api.get(`/organizations/${orgId}/members`, { params: { limit: 100 } })
+        .then((r) => r.data.data.items as OrgMember[]),
+    enabled: !!orgId,
+  })
+
+  const [addMemberUserId, setAddMemberUserId] = useState('')
+  const [addMemberRole, setAddMemberRole] = useState<ProjectRole>('MEMBER')
+
+  const addMemberMutation = useMutation({
+    mutationFn: () => api.post(`/organizations/${orgId}/projects/${params.projectId}/members`, { userId: addMemberUserId, role: addMemberRole }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['project-members', orgId, params.projectId] })
+      setAddMemberUserId('')
+      setAddMemberRole('MEMBER')
+      toast.success('Member added')
+    },
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'add', resource: 'member', role })),
+  })
+
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId: string) => api.delete(`/organizations/${orgId}/projects/${params.projectId}/members/${userId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['project-members', orgId, params.projectId] }),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'remove', resource: 'member', role })),
+  })
+
+  const [labelName, setLabelName] = useState('')
+  const [labelColor, setLabelColor] = useState('#6366f1')
+
+  const createLabelMutation = useMutation({
+    mutationFn: () => api.post(`/organizations/${orgId}/projects/${params.projectId}/labels`, { name: labelName.trim(), color: labelColor }),
+    onSuccess: () => {
+      refetchLabels()
+      setLabelName('')
+      setLabelColor('#6366f1')
+      toast.success('Label created')
+    },
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'label', role })),
+  })
+
+  const deleteLabelMutation = useMutation({
+    mutationFn: (labelId: string) => api.delete(`/organizations/${orgId}/projects/${params.projectId}/labels/${labelId}`),
+    onSuccess: () => refetchLabels(),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'delete', resource: 'label', role })),
   })
 
   const skeletonBadge = <div className="h-5 w-[4.5rem] rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse flex-shrink-0" />
@@ -183,18 +276,25 @@ export default function ProjectDetailPage({
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-surface-elevated rounded-lg p-1 self-start">
-              <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white dark:bg-white/[0.1] text-zinc-900 dark:text-white font-medium shadow-sm">
-                <LayoutDashboard className="w-3.5 h-3.5" /> Overview
-              </span>
-              <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/list`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-white/[0.08] transition-colors">
-                <List className="w-3.5 h-3.5" /> List
-              </Link>
-              <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-white/[0.08] transition-colors">
-                <LayoutGrid className="w-3.5 h-3.5" /> Kanban
-              </Link>
+            <div className="flex items-center gap-2 self-start">
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-surface-elevated rounded-lg p-1">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white dark:bg-white/[0.1] text-zinc-900 dark:text-white font-medium shadow-sm">
+                  <LayoutDashboard className="w-3.5 h-3.5" /> Overview
+                </span>
+                <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/list`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-white/[0.08] transition-colors">
+                  <List className="w-3.5 h-3.5" /> List
+                </Link>
+                <Link href={`/dashboard/${params.orgSlug}/projects/${params.projectId}/kanban`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-white/[0.08] transition-colors">
+                  <LayoutGrid className="w-3.5 h-3.5" /> Kanban
+                </Link>
+              </div>
+              {hasOrgRole(role, 'MEMBER') && (
+                <Button onClick={() => setShowCreateTask(true)}>
+                  <Plus className="w-3.5 h-3.5" /> New Task
+                </Button>
+              )}
             </div>
           </div>
 
@@ -229,7 +329,7 @@ export default function ProjectDetailPage({
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-3 gap-6">
           {/* Status distribution */}
           <div className="bg-white dark:bg-surface-card rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-card p-5">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Task Status Distribution</h3>
@@ -267,20 +367,124 @@ export default function ProjectDetailPage({
               <h3 className="font-semibold text-gray-900 dark:text-white">Team Members</h3>
               <span className="text-xs text-gray-400 dark:text-zinc-500"><Users className="w-3.5 h-3.5 inline mr-1" />{members?.length ?? 0}</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {members?.map((member) => (
-                <div key={member.id} className="flex items-center gap-3">
+                <div key={member.id} className="flex items-center gap-3 group">
                   <Avatar name={member.user.name} avatarUrl={member.user.avatarUrl} size="sm" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{member.user.name}</p>
                     <p className="text-xs text-gray-400 dark:text-zinc-500">{member.role}</p>
                   </div>
+                  {hasOrgRole(role, 'MANAGER') && (
+                    <button
+                      onClick={() => removeMemberMutation.mutate(member.userId)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-all"
+                      title="Remove from project"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               ))}
               {(!members || members.length === 0) && (
                 <div className="text-sm text-gray-400 dark:text-zinc-500 text-center py-4">No members yet</div>
               )}
             </div>
+
+            {hasOrgRole(role, 'MANAGER') && (() => {
+              const memberUserIds = new Set(members?.map((m) => m.userId))
+              const available = orgMembers?.filter((m) => !memberUserIds.has(m.userId)) ?? []
+              return available.length > 0 ? (
+                <div className="border-t border-gray-100 dark:border-white/[0.06] pt-3 mt-3">
+                  <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mb-2">Add member</p>
+                  <SelectDropdown
+                    value={addMemberUserId}
+                    onChange={setAddMemberUserId}
+                    placeholder="Select org member…"
+                    options={available.map((m) => ({ label: m.user.name, value: m.userId }))}
+                    className="w-full mb-2"
+                  />
+                  {addMemberUserId && (
+                    <div className="flex items-center gap-2">
+                      <SelectDropdown
+                        value={addMemberRole}
+                        onChange={(v) => setAddMemberRole(v as ProjectRole)}
+                        options={[
+                          { label: 'Lead', value: 'LEAD' },
+                          { label: 'Member', value: 'MEMBER' },
+                          { label: 'Viewer', value: 'VIEWER' },
+                        ]}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={() => addMemberMutation.mutate()}
+                        loading={addMemberMutation.isPending}
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : null
+            })()}
+          </div>
+
+          {/* Labels */}
+          <div className="bg-white dark:bg-surface-card rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Labels</h3>
+              <span className="text-xs text-gray-400 dark:text-zinc-500"><Tag className="w-3.5 h-3.5 inline mr-1" />{labels?.length ?? 0}</span>
+            </div>
+
+            {/* Existing labels */}
+            <div className="flex flex-wrap gap-1.5 mb-4 min-h-[28px]">
+              {labels?.map((label) => (
+                <span key={label.id} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
+                  style={{ backgroundColor: `${label.color}20`, color: label.color, border: `1px solid ${label.color}40` }}>
+                  {label.name}
+                  {hasOrgRole(role, 'MEMBER') && (
+                    <button onClick={() => deleteLabelMutation.mutate(label.id)}
+                      className="ml-0.5 hover:opacity-70 transition-opacity">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </span>
+              ))}
+              {(!labels || labels.length === 0) && (
+                <p className="text-xs text-gray-400 dark:text-zinc-500">No labels yet</p>
+              )}
+            </div>
+
+            {/* Create label */}
+            {hasOrgRole(role, 'MEMBER') && (
+              <div className="border-t border-gray-100 dark:border-white/[0.06] pt-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mb-2">Create label</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    value={labelName}
+                    onChange={(e) => setLabelName(e.target.value)}
+                    placeholder="Label name"
+                    onKeyDown={(e) => e.key === 'Enter' && labelName.trim() && createLabelMutation.mutate()}
+                    className="flex-1 px-2.5 py-1.5 border border-gray-200 dark:border-white/[0.1] rounded-lg text-xs bg-white dark:bg-surface-elevated dark:text-zinc-100 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20"
+                  />
+                  <input
+                    type="color"
+                    value={labelColor}
+                    onChange={(e) => setLabelColor(e.target.value)}
+                    className="w-8 h-8 rounded-lg border border-gray-200 dark:border-white/[0.1] cursor-pointer p-0.5 bg-white dark:bg-surface-elevated"
+                    title="Pick color"
+                  />
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => createLabelMutation.mutate()}
+                  loading={createLabelMutation.isPending}
+                  disabled={!labelName.trim()}
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Label
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -411,6 +615,98 @@ export default function ProjectDetailPage({
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Create Task Modal */}
+      <Modal isOpen={showCreateTask} onClose={() => { setShowCreateTask(false); resetTask(); setSelectedTaskLabelIds([]) }} title="New Task">
+        <form onSubmit={handleTask((d) => createTaskMutation.mutate(d))} className="px-5 pb-5 pt-4 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Title *</label>
+            <input
+              {...regTask('title')}
+              placeholder="Task title"
+              autoFocus
+              className={cn(
+                'w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20',
+                taskErrors.title ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-white/[0.1]'
+              )}
+            />
+            {taskErrors.title && <p className="text-red-500 text-xs mt-1">{taskErrors.title.message}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Description</label>
+            <textarea
+              {...regTask('description')}
+              rows={3}
+              placeholder="Optional description"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20 resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Status</label>
+              <SelectDropdown
+                value={watchTask('status')}
+                onChange={(v) => setTaskVal('status', v as CreateTaskForm['status'])}
+                options={[
+                  { label: 'Backlog', value: 'BACKLOG' },
+                  { label: 'To Do', value: 'TODO' },
+                  { label: 'In Progress', value: 'IN_PROGRESS' },
+                  { label: 'In Review', value: 'IN_REVIEW' },
+                  { label: 'Done', value: 'DONE' },
+                ]}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Priority</label>
+              <SelectDropdown
+                value={watchTask('priority')}
+                onChange={(v) => setTaskVal('priority', v as CreateTaskForm['priority'])}
+                options={[
+                  { label: 'Critical', value: 'CRITICAL' },
+                  { label: 'High', value: 'HIGH' },
+                  { label: 'Medium', value: 'MEDIUM' },
+                  { label: 'Low', value: 'LOW' },
+                ]}
+                className="w-full"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Due Date</label>
+            <input
+              {...regTask('dueDate')}
+              type="date"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20"
+            />
+          </div>
+          {labels && labels.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Labels</label>
+              <div className="flex flex-wrap gap-1.5">
+                {labels.map((l) => {
+                  const active = selectedTaskLabelIds.includes(l.id)
+                  return (
+                    <button key={l.id} type="button"
+                      onClick={() => setSelectedTaskLabelIds((prev) => active ? prev.filter((id) => id !== l.id) : [...prev, l.id])}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium border transition-all"
+                      style={active
+                        ? { backgroundColor: l.color, color: '#fff', borderColor: l.color }
+                        : { backgroundColor: `${l.color}18`, color: l.color, borderColor: `${l.color}40` }
+                      }>
+                      {l.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" type="button" onClick={() => { setShowCreateTask(false); resetTask(); setSelectedTaskLabelIds([]) }}>Cancel</Button>
+            <Button type="submit" loading={taskSubmitting || createTaskMutation.isPending}>Create Task</Button>
+          </div>
+        </form>
       </Modal>
 
       {/* Delete Project Modal */}

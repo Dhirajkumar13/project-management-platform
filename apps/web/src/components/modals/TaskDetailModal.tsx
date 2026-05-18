@@ -9,7 +9,7 @@ import { SelectDropdown } from '@/components/ui/SelectDropdown'
 import api from '@/lib/api'
 import { cn, STATUS_LABELS, STATUS_COLORS, formatRelativeTime, formatDate, isOverdue, hasOrgRole } from '@/lib/utils'
 import { useOrgStore } from '@/store/org.store'
-import { X, Trash2, Send, Plus, Clock, Pencil, Check, ChevronRight, MessageSquare, History, ListChecks } from 'lucide-react'
+import { X, Trash2, Send, Plus, Clock, Calendar, Pencil, Check, ChevronRight, MessageSquare, History, ListChecks } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '@/lib/errors'
 import ReactMarkdown from 'react-markdown'
@@ -63,6 +63,10 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
   const [localLabels, setLocalLabels] = useState(task.labels ?? [])
   const [editingPoints, setEditingPoints] = useState(false)
   const [pointsValue, setPointsValue] = useState(String(task.storyPoints ?? ''))
+  const [localStartDate, setLocalStartDate] = useState(task.startDate)
+  const [localDueDate, setLocalDueDate] = useState(task.dueDate)
+  const [editingDueDate, setEditingDueDate] = useState(false)
+  const [editingStartDate, setEditingStartDate] = useState(false)
   const [newSubtask, setNewSubtask] = useState('')
   const qc = useQueryClient()
 
@@ -516,17 +520,68 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
                 </div>
               </div>
 
+              {/* Start Date */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Date</p>
+                {editingStartDate ? (
+                  <input
+                    type="date"
+                    autoFocus
+                    defaultValue={localStartDate ? localStartDate.slice(0, 10) : task.createdAt.slice(0, 10)}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const iso = new Date(e.target.value).toISOString()
+                        setLocalStartDate(iso)
+                        updateMutation.mutate({ startDate: iso })
+                      }
+                      setEditingStartDate(false)
+                    }}
+                    onBlur={() => setEditingStartDate(false)}
+                    className="w-full px-2 py-1 text-sm border border-zinc-300 dark:border-white/[0.1] rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white dark:bg-surface-elevated dark:text-white"
+                  />
+                ) : (
+                  <button
+                    onClick={() => canEdit && setEditingStartDate(true)}
+                    className={cn('flex items-center gap-1.5 text-sm group text-left w-full', canEdit && 'hover:text-zinc-900 dark:hover:text-white')}
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-gray-700 dark:text-zinc-300">
+                      {formatDate(localStartDate ?? task.createdAt)}
+                    </span>
+                    {canEdit && <Pencil className="w-3 h-3 text-gray-300 group-hover:text-zinc-500 ml-auto transition-colors" />}
+                  </button>
+                )}
+              </div>
+
               {/* Due Date */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Due Date</p>
-                {task.dueDate ? (
-                  <div className={cn('flex items-center gap-1.5 text-sm',
-                    isOverdue(task.dueDate) && task.status !== 'DONE' ? 'text-red-500 font-medium' : 'text-gray-700')}>
-                    <Clock className="w-3.5 h-3.5" />
-                    {formatDate(task.dueDate)}
-                  </div>
+                {editingDueDate ? (
+                  <input
+                    type="date"
+                    autoFocus
+                    defaultValue={localDueDate ? localDueDate.slice(0, 10) : ''}
+                    onChange={(e) => {
+                      const iso = e.target.value ? new Date(e.target.value).toISOString() : undefined
+                      setLocalDueDate(iso)
+                      updateMutation.mutate({ dueDate: iso })
+                      setEditingDueDate(false)
+                    }}
+                    onBlur={() => setEditingDueDate(false)}
+                    className="w-full px-2 py-1 text-sm border border-zinc-300 dark:border-white/[0.1] rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white dark:bg-surface-elevated dark:text-white"
+                  />
                 ) : (
-                  <p className="text-sm text-gray-400 italic">No due date</p>
+                  <button
+                    onClick={() => canEdit && setEditingDueDate(true)}
+                    className={cn('flex items-center gap-1.5 text-sm group text-left w-full', canEdit && 'hover:text-zinc-900 dark:hover:text-white')}
+                  >
+                    <Clock className="w-3.5 h-3.5 text-gray-400" />
+                    {localDueDate
+                      ? <span className={cn(isOverdue(localDueDate) && task.status !== 'DONE' ? 'text-red-500 font-medium' : 'text-gray-700 dark:text-zinc-300')}>{formatDate(localDueDate)}</span>
+                      : <span className="text-gray-400 dark:text-zinc-500 italic">{canEdit ? 'Set due date' : 'No due date'}</span>
+                    }
+                    {canEdit && <Pencil className="w-3 h-3 text-gray-300 group-hover:text-zinc-500 ml-auto transition-colors" />}
+                  </button>
                 )}
               </div>
 

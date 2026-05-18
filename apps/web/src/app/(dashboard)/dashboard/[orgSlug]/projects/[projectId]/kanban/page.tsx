@@ -18,7 +18,7 @@ import { Task, TaskStatus, Priority, KanbanBoard, Label, ProjectMember } from '@
 import {
   cn, PRIORITY_DOTS, STATUS_LABELS, formatDate, isOverdue, hasOrgRole
 } from '@/lib/utils'
-import { Plus, MessageSquare, Calendar, Filter, X, LayoutDashboard, List, LayoutGrid } from 'lucide-react'
+import { Plus, MessageSquare, Calendar, Clock, Filter, X, LayoutDashboard, List, LayoutGrid } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -85,10 +85,15 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
 
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-2">
-          {task.dueDate && (
+          {task.dueDate ? (
             <span className={cn('text-xs flex items-center gap-0.5', isOverdue(task.dueDate) && task.status !== 'DONE' ? 'text-red-500' : 'text-gray-400')}>
-              <Calendar className="w-3 h-3" />
+              <Clock className="w-3 h-3" />
               {formatDate(task.dueDate)}
+            </span>
+          ) : (
+            <span className="text-xs flex items-center gap-0.5 text-gray-400">
+              <Calendar className="w-3 h-3" />
+              {formatDate(task.startDate ?? task.createdAt)}
             </span>
           )}
         </div>
@@ -162,6 +167,7 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [addingToColumn, setAddingToColumn] = useState<TaskStatus | null>(null)
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([])
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(true)
   const [filterPriority, setFilterPriority] = useState<Priority | ''>('')
   const [filterAssignee, setFilterAssignee] = useState('')
@@ -239,12 +245,13 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateForm & { status: TaskStatus; assigneeIds: string[] }) =>
+    mutationFn: (data: CreateForm & { status: TaskStatus; assigneeIds: string[]; labelIds: string[] }) =>
       api.post(`/organizations/${orgId}/projects/${projectId}/tasks`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['kanban', projectId] })
       setAddingToColumn(null)
       setSelectedAssigneeIds([])
+      setSelectedLabelIds([])
       reset()
       toast.success('Task created!')
     },
@@ -375,8 +382,9 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
           </>
         )}
 
-        {/* View switcher */}
-        <div className="ml-auto flex items-center gap-1 bg-gray-100 dark:bg-surface-card rounded-lg p-1">
+        {/* View switcher + New Task */}
+        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-surface-card rounded-lg p-1">
           <Link
             href={`/dashboard/${params.orgSlug}/projects/${projectId}`}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-surface-elevated transition-colors"
@@ -392,6 +400,12 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
           <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-white dark:bg-white/[0.1] text-zinc-900 dark:text-white font-medium shadow-sm">
             <LayoutGrid className="w-3.5 h-3.5" /> Kanban
           </span>
+        </div>
+        {hasOrgRole(currentOrg?.role, 'MEMBER') && (
+          <Button onClick={() => setAddingToColumn('BACKLOG')}>
+            <Plus className="w-3.5 h-3.5" /> New Task
+          </Button>
+        )}
         </div>
       </div>
 
@@ -417,12 +431,13 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
         </DndContext>
       </div>
 
-      <Modal isOpen={!!addingToColumn} onClose={() => { setAddingToColumn(null); setSelectedAssigneeIds([]); reset() }} title={`Add task to ${addingToColumn ? STATUS_LABELS[addingToColumn] : ''}`}>
+      <Modal isOpen={!!addingToColumn} onClose={() => { setAddingToColumn(null); setSelectedAssigneeIds([]); setSelectedLabelIds([]); reset() }} title={`Add task to ${addingToColumn ? STATUS_LABELS[addingToColumn] : ''}`}>
         <form
           onSubmit={handleSubmit((d) => createMutation.mutate({
             ...d,
             status: addingToColumn!,
             assigneeIds: selectedAssigneeIds,
+            labelIds: selectedLabelIds,
             dueDate: d.dueDate || undefined,
             description: d.description || undefined,
           }))}
@@ -492,8 +507,30 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
             </div>
           )}
 
+          {labels && labels.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Labels</label>
+              <div className="flex flex-wrap gap-1.5">
+                {labels.map((l) => {
+                  const active = selectedLabelIds.includes(l.id)
+                  return (
+                    <button key={l.id} type="button"
+                      onClick={() => setSelectedLabelIds((prev) => active ? prev.filter((id) => id !== l.id) : [...prev, l.id])}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium border transition-all"
+                      style={active
+                        ? { backgroundColor: l.color, color: '#fff', borderColor: l.color }
+                        : { backgroundColor: `${l.color}18`, color: l.color, borderColor: `${l.color}40` }
+                      }>
+                      {l.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-1">
-            <Button variant="outline" type="button" onClick={() => { setAddingToColumn(null); setSelectedAssigneeIds([]); reset() }}>Cancel</Button>
+            <Button variant="outline" type="button" onClick={() => { setAddingToColumn(null); setSelectedAssigneeIds([]); setSelectedLabelIds([]); reset() }}>Cancel</Button>
             <Button type="submit" loading={isSubmitting || createMutation.isPending}>Create Task</Button>
           </div>
         </form>

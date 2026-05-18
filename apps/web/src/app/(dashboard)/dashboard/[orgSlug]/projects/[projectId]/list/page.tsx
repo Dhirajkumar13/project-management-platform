@@ -10,14 +10,27 @@ import { Spinner } from '@/components/ui/Spinner'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Button } from '@/components/ui/Button'
 import api from '@/lib/api'
-import { Task, TaskStatus, Priority } from '@/types'
+import { Task, TaskStatus, Priority, Label } from '@/types'
 import { cn, STATUS_COLORS, STATUS_LABELS, PRIORITY_COLORS, PRIORITY_DOTS, formatDate, isOverdue, hasOrgRole } from '@/lib/utils'
-import { Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown, LayoutGrid, LayoutDashboard, List } from 'lucide-react'
+import { Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown, LayoutGrid, LayoutDashboard, List, Plus, Calendar, Clock } from 'lucide-react'
 import { ProjectStatusBadge } from '@/components/ui/ProjectStatusBadge'
 import { SelectDropdown } from '@/components/ui/SelectDropdown'
+import { Modal } from '@/components/ui/Modal'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '@/lib/errors'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const createSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
+  status: z.enum(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE']).default('BACKLOG'),
+  dueDate: z.string().optional(),
+})
+type CreateForm = z.infer<typeof createSchema>
 
 type SortField = 'title' | 'status' | 'priority' | 'dueDate' | 'createdAt'
 type SortDir = 'asc' | 'desc'
@@ -106,6 +119,36 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
     }).catch((error) => toast.error(getErrorMessage({ error, action: 'move', resource: 'tasks', role: currentOrg?.role })))
   }
 
+  const [showCreate, setShowCreate] = useState(false)
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
+
+  const { data: projectLabels } = useQuery({
+    queryKey: ['project-labels', currentOrg?.id, params.projectId],
+    queryFn: () => api.get(`/organizations/${currentOrg!.id}/projects/${params.projectId}/labels`).then((r) => r.data.data as Label[]),
+    enabled: !!currentOrg?.id,
+  })
+
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<CreateForm>({
+    resolver: zodResolver(createSchema),
+    defaultValues: { priority: 'MEDIUM', status: 'BACKLOG' },
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (d: CreateForm) => api.post(`/organizations/${currentOrg!.id}/projects/${params.projectId}/tasks`, {
+      ...d,
+      dueDate: d.dueDate ? new Date(d.dueDate).toISOString() : undefined,
+      labelIds: selectedLabelIds,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks-list'] })
+      setShowCreate(false)
+      reset()
+      setSelectedLabelIds([])
+      toast.success('Task created!')
+    },
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'task', role: currentOrg?.role })),
+  })
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-gray-300" />
     return sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-zinc-900 dark:text-zinc-100" /> : <ArrowDown className="w-3 h-3 text-zinc-900 dark:text-zinc-100" />
@@ -179,6 +222,10 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
           </div>
 
           <div className="flex items-center gap-2">
+            <button onClick={exportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-surface-elevated">
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
             {/* View switcher */}
             <div className="flex items-center gap-1 bg-gray-100 dark:bg-surface-card rounded-lg p-1">
               <Link
@@ -197,10 +244,11 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
                 <LayoutGrid className="w-3.5 h-3.5" /> Kanban
               </Link>
             </div>
-            <button onClick={exportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-surface-elevated">
-              <Download className="w-4 h-4" /> Export CSV
-            </button>
+            {hasOrgRole(currentOrg?.role, 'MEMBER') && (
+              <Button onClick={() => setShowCreate(true)}>
+                <Plus className="w-3.5 h-3.5" /> New Task
+              </Button>
+            )}
           </div>
         </div>
 
@@ -236,6 +284,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
                     </button>
                   </th>
                   <th className="px-4 py-3 text-left w-36 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">Assignees</th>
+                  <th className="px-4 py-3 text-left w-28 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide">Start</th>
                   <th className="px-4 py-3 text-left w-28">
                     <button onClick={() => toggleSort('dueDate')} className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-zinc-200">
                       Due <SortIcon field="dueDate" />
@@ -246,7 +295,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-white/[0.05]">
                 {sorted.length === 0 ? (
-                  <tr><td colSpan={7} className="py-12 text-center text-gray-400 dark:text-zinc-500 text-sm">No tasks found</td></tr>
+                  <tr><td colSpan={8} className="py-12 text-center text-gray-400 dark:text-zinc-500 text-sm">No tasks found</td></tr>
                 ) : sorted.map((task) => (
                   <tr key={task.id}
                     onClick={() => router.push(`/dashboard/${params.orgSlug}/projects/${params.projectId}/tasks/${task.id}`)}
@@ -292,8 +341,15 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
                       </div>
                     </td>
                     <td className="px-4 py-3">
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {formatDate(task.startDate ?? task.createdAt)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
                       {task.dueDate ? (
-                        <span className={cn('text-xs', isOverdue(task.dueDate) && task.status !== 'DONE' ? 'text-red-500 font-medium' : 'text-gray-500')}>
+                        <span className={cn('text-xs flex items-center gap-1', isOverdue(task.dueDate) && task.status !== 'DONE' ? 'text-red-500 font-medium' : 'text-gray-500')}>
+                          <Clock className="w-3 h-3" />
                           {formatDate(task.dueDate)}
                         </span>
                       ) : (
@@ -313,6 +369,91 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
           <p className="text-xs text-gray-400 mt-2">{sorted.length} tasks</p>
         )}
       </div>
+
+      <Modal isOpen={showCreate} onClose={() => { setShowCreate(false); reset() }} title="New Task">
+        <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="px-5 pb-5 pt-4 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Title *</label>
+            <input
+              {...register('title')}
+              placeholder="Task title"
+              autoFocus
+              className={cn(
+                'w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20',
+                errors.title ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-white/[0.1]'
+              )}
+            />
+            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Description</label>
+            <textarea
+              {...register('description')}
+              rows={3}
+              placeholder="Optional description"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20 resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Status</label>
+              <SelectDropdown
+                value={watch('status')}
+                onChange={(v) => setValue('status', v as CreateForm['status'])}
+                options={(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as const).map((s) => ({ label: STATUS_LABELS[s], value: s }))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Priority</label>
+              <SelectDropdown
+                value={watch('priority')}
+                onChange={(v) => setValue('priority', v as CreateForm['priority'])}
+                options={[
+                  { label: 'Critical', value: 'CRITICAL' },
+                  { label: 'High', value: 'HIGH' },
+                  { label: 'Medium', value: 'MEDIUM' },
+                  { label: 'Low', value: 'LOW' },
+                ]}
+                className="w-full"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Due Date</label>
+            <input
+              {...register('dueDate')}
+              type="date"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.1] rounded-lg text-sm bg-white dark:bg-surface-card dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white/20"
+            />
+          </div>
+          {projectLabels && projectLabels.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Labels</label>
+              <div className="flex flex-wrap gap-1.5">
+                {projectLabels.map((l) => {
+                  const active = selectedLabelIds.includes(l.id)
+                  return (
+                    <button key={l.id} type="button"
+                      onClick={() => setSelectedLabelIds((prev) => active ? prev.filter((id) => id !== l.id) : [...prev, l.id])}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium border transition-all"
+                      style={active
+                        ? { backgroundColor: l.color, color: '#fff', borderColor: l.color }
+                        : { backgroundColor: `${l.color}18`, color: l.color, borderColor: `${l.color}40` }
+                      }>
+                      {l.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" type="button" onClick={() => { setShowCreate(false); reset(); setSelectedLabelIds([]) }}>Cancel</Button>
+            <Button type="submit" loading={isSubmitting || createMutation.isPending}>Create Task</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
