@@ -59,6 +59,8 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
   const [title, setTitle] = useState(task.title)
   const [showAddAssignee, setShowAddAssignee] = useState(false)
   const [showAddLabel, setShowAddLabel] = useState(false)
+  const [localStatus, setLocalStatus] = useState(task.status)
+  const [localPriority, setLocalPriority] = useState(task.priority)
   const [localAssignees, setLocalAssignees] = useState(task.assignees ?? [])
   const [localLabels, setLocalLabels] = useState(task.labels ?? [])
   const [editingPoints, setEditingPoints] = useState(false)
@@ -196,8 +198,8 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
             <ChevronRight className="w-3.5 h-3.5" />
             <span className="font-medium text-gray-600">Board</span>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className={cn('px-2 py-0.5 rounded-full font-semibold', STATUS_COLORS[task.status])}>
-              {STATUS_LABELS[task.status]}
+            <span className={cn('px-2 py-0.5 rounded-full font-semibold', STATUS_COLORS[localStatus])}>
+              {STATUS_LABELS[localStatus]}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -418,8 +420,8 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Status</p>
                 <SelectDropdown
-                  value={task.status}
-                  onChange={(v) => updateMutation.mutate({ status: v as Task['status'] })}
+                  value={localStatus}
+                  onChange={(v) => { setLocalStatus(v as Task['status']); updateMutation.mutate({ status: v as Task['status'] }) }}
                   options={(['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as const).map((s) => ({ label: STATUS_LABELS[s], value: s }))}
                   className="w-full"
                 />
@@ -473,8 +475,8 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Priority</p>
                 <SelectDropdown
-                  value={task.priority}
-                  onChange={(v) => updateMutation.mutate({ priority: v as Task['priority'] })}
+                  value={localPriority}
+                  onChange={(v) => { setLocalPriority(v as Task['priority']); updateMutation.mutate({ priority: v as Task['priority'] }) }}
                   options={(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((p) => ({ label: p, value: p }))}
                   className="w-full"
                 />
@@ -577,7 +579,7 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
                   >
                     <Clock className="w-3.5 h-3.5 text-gray-400" />
                     {localDueDate
-                      ? <span className={cn(isOverdue(localDueDate) && task.status !== 'DONE' ? 'text-red-500 font-medium' : 'text-gray-700 dark:text-zinc-300')}>{formatDate(localDueDate)}</span>
+                      ? <span className={cn(isOverdue(localDueDate) && localStatus !== 'DONE' ? 'text-red-500 font-medium' : 'text-gray-700 dark:text-zinc-300')}>{formatDate(localDueDate)}</span>
                       : <span className="text-gray-400 dark:text-zinc-500 italic">{canEdit ? 'Set due date' : 'No due date'}</span>
                     }
                     {canEdit && <Pencil className="w-3 h-3 text-gray-300 group-hover:text-zinc-500 ml-auto transition-colors" />}
