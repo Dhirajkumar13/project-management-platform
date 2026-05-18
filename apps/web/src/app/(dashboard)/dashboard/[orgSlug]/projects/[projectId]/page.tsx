@@ -241,7 +241,7 @@ export default function ProjectDetailPage({
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{project.name}</h2>
-                {hasOrgRole(role, 'MEMBER') && (
+                {hasOrgRole(role, 'MANAGER') && (
                   <button
                     onClick={() => {
                       setEditForm({

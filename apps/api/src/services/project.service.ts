@@ -50,7 +50,10 @@ export const projectService = {
   },
 
   list: async (orgId: string, params: PaginationParams & { status?: ProjectStatus }) => {
-    return projectRepository.list(orgId, params)
+    const result = await projectRepository.list(orgId, params)
+    if (!result.items.length) return result
+    const statsArr = await Promise.all(result.items.map((p) => projectRepository.getStats(p.id)))
+    return { ...result, items: result.items.map((p, i) => ({ ...p, stats: statsArr[i] })) }
   },
 
   update: async (projectId: string, orgId: string, userId: string, data: {

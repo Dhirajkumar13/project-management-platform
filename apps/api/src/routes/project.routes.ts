@@ -303,7 +303,7 @@ router.post('/', requireOrgRole('MEMBER'), validate(createProjectSchema), projec
  *         description: Label deleted
  */
 router.get('/:projectId', projectController.getById)
-router.patch('/:projectId', requireOrgRole('MEMBER'), validate(updateProjectSchema), projectController.update)
+router.patch('/:projectId', requireOrgRole('MANAGER'), validate(updateProjectSchema), projectController.update)
 router.delete('/:projectId', requireOrgRole('MANAGER'), projectController.delete)
 
 router.get('/:projectId/members', projectController.getMembers)
