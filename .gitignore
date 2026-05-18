@@ -52,3 +52,7 @@ coverage/
 # Misc
 .cache/
 *.local
+
+# Claude Code
+.claude/
+CLAUDE.md

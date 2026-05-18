@@ -5,6 +5,7 @@ import { Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 
 type ProjectStatus = 'ACTIVE' | 'ARCHIVED' | 'COMPLETED'
 
@@ -46,7 +47,7 @@ export function ProjectStatusBadge({ orgId, projectId, status, onUpdate }: Props
       toast.success('Project status updated')
       onUpdate?.()
     },
-    onError: () => toast.error('Failed to update status'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'update', resource: 'project status' })),
   })
 
   const current = (status as ProjectStatus) in STATUS_STYLES ? (status as ProjectStatus) : 'ACTIVE'

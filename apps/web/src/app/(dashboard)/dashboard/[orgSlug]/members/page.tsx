@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 
 const inviteSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -47,7 +48,13 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
       reset()
       toast.success('Invite sent!')
     },
-    onError: () => toast.error('Failed to send invite'),
+    onError: (error) => toast.error(getErrorMessage({
+      error,
+      action: 'send',
+      resource: 'invite',
+      role: currentOrg?.role,
+      overrides: { 409: 'This user is already a member or has a pending invite.' },
+    })),
   })
 
   const removeMutation = useMutation({
@@ -56,7 +63,7 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
       qc.invalidateQueries({ queryKey: ['members', currentOrg?.id] })
       toast.success('Member removed')
     },
-    onError: () => toast.error('Failed to remove member'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'remove', resource: 'member', role: currentOrg?.role })),
   })
 
   const updateRoleMutation = useMutation({
@@ -66,7 +73,13 @@ export default function MembersPage({ params }: { params: { orgSlug: string } })
       qc.invalidateQueries({ queryKey: ['members', currentOrg?.id] })
       toast.success('Role updated')
     },
-    onError: () => toast.error('Failed to update role'),
+    onError: (error) => toast.error(getErrorMessage({
+      error,
+      action: 'update',
+      resource: 'role',
+      role: currentOrg?.role,
+      overrides: { 403: currentOrg?.role === 'VIEWER' ? 'Viewer access cannot update roles.' : 'Only admins can manage roles.' },
+    })),
   })
 
   return (

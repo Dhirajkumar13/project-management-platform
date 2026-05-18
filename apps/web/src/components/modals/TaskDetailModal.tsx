@@ -11,6 +11,7 @@ import { cn, STATUS_LABELS, STATUS_COLORS, formatRelativeTime, formatDate, isOve
 import { useOrgStore } from '@/store/org.store'
 import { X, Trash2, Send, Plus, Clock, Pencil, Check, ChevronRight, MessageSquare, History, ListChecks } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 import ReactMarkdown from 'react-markdown'
 
 interface Props {
@@ -98,52 +99,54 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
       .then((r) => r.data.data as { id: string; title: string; completed: boolean }[]),
   })
 
+  const role = currentOrg?.role
+
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Task>) =>
       api.patch(`/organizations/${orgId}/projects/${projectId}/tasks/${task.id}`, data),
     onSuccess: () => { onUpdate(); toast.success('Task updated') },
-    onError: () => toast.error('Failed to update task'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'update', resource: 'task', role })),
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/organizations/${orgId}/projects/${projectId}/tasks/${task.id}`),
     onSuccess: () => { onUpdate(); onClose(); toast.success('Task deleted') },
-    onError: () => toast.error('Failed to delete task'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'delete', resource: 'task', role })),
   })
 
   const commentMutation = useMutation({
     mutationFn: (content: string) =>
       api.post(`/organizations/${orgId}/projects/${projectId}/tasks/${task.id}/comments`, { content }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['comments', task.id] }); setComment('') },
-    onError: () => toast.error('Failed to add comment'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'add', resource: 'comment', role })),
   })
 
   const addAssigneeMutation = useMutation({
     mutationFn: (userId: string) =>
       api.post(`/organizations/${orgId}/projects/${projectId}/tasks/${task.id}/assignees`, { userId }),
     onSuccess: () => onUpdate(),
-    onError: () => toast.error('Failed to add assignee'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'add', resource: 'assignee', role })),
   })
 
   const removeAssigneeMutation = useMutation({
     mutationFn: (userId: string) =>
       api.delete(`/organizations/${orgId}/projects/${projectId}/tasks/${task.id}/assignees/${userId}`),
     onSuccess: () => onUpdate(),
-    onError: () => toast.error('Failed to remove assignee'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'remove', resource: 'assignee', role })),
   })
 
   const addLabelMutation = useMutation({
     mutationFn: (labelId: string) =>
       api.post(`/organizations/${orgId}/projects/${projectId}/tasks/${task.id}/labels`, { labelId }),
     onSuccess: () => onUpdate(),
-    onError: () => toast.error('Failed to add label'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'add', resource: 'label', role })),
   })
 
   const removeLabelMutation = useMutation({
     mutationFn: (labelId: string) =>
       api.delete(`/organizations/${orgId}/projects/${projectId}/tasks/${task.id}/labels/${labelId}`),
     onSuccess: () => onUpdate(),
-    onError: () => toast.error('Failed to remove label'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'remove', resource: 'label', role })),
   })
 
   const subtaskToggle = useMutation({
@@ -156,7 +159,7 @@ export function TaskDetailModal({ task, orgId, projectId, onClose, onUpdate }: P
     mutationFn: (t: string) =>
       api.post(`/organizations/${orgId}/projects/${projectId}/tasks/${task.id}/subtasks`, { title: t }),
     onSuccess: () => { refetchSubtasks(); setNewSubtask(''); onUpdate() },
-    onError: () => toast.error('Failed to add subtask'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'subtask', role })),
   })
 
   const handleTitleSave = () => {

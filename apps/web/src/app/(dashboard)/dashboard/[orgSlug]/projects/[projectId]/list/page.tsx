@@ -17,6 +17,7 @@ import { ProjectStatusBadge } from '@/components/ui/ProjectStatusBadge'
 import { SelectDropdown } from '@/components/ui/SelectDropdown'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 
 type SortField = 'title' | 'status' | 'priority' | 'dueDate' | 'createdAt'
 type SortDir = 'asc' | 'desc'
@@ -92,7 +93,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
       setSelected(new Set())
       toast.success('Tasks deleted')
     },
-    onError: () => toast.error('Failed to delete tasks'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'delete', resource: 'tasks', role: currentOrg?.role })),
   })
 
   const bulkMove = (status: TaskStatus) => {
@@ -102,7 +103,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
       qc.invalidateQueries({ queryKey: ['tasks-list'] })
       setSelected(new Set())
       toast.success(`Moved to ${STATUS_LABELS[status]}`)
-    }).catch(() => toast.error('Failed to move tasks'))
+    }).catch((error) => toast.error(getErrorMessage({ error, action: 'move', resource: 'tasks', role: currentOrg?.role })))
   }
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -123,7 +124,7 @@ export default function TaskListPage({ params }: { params: { orgSlug: string; pr
         a.download = `tasks-${params.projectId}.csv`
         a.click()
       })
-      .catch(() => toast.error('Export failed'))
+      .catch((error) => toast.error(getErrorMessage({ error, action: 'export', resource: 'tasks' })))
   }
 
   return (

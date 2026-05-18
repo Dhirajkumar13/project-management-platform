@@ -19,6 +19,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAx
 import { CheckSquare, AlertTriangle, Users, BarChart2, Calendar, List, TrendingDown, LayoutDashboard, LayoutGrid, ArrowRight, Pencil, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 
 const PIE_COLORS = ['#71717a', '#3b82f6', '#2563eb', '#f59e0b', '#10b981']
 const STATUS_ORDER: TaskStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE']
@@ -54,7 +55,7 @@ export default function ProjectDetailPage({
       setShowEdit(false)
       toast.success('Project updated')
     },
-    onError: () => toast.error('Failed to update project'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'update', resource: 'project', role })),
   })
 
   const deleteMutation = useMutation({
@@ -64,7 +65,7 @@ export default function ProjectDetailPage({
       toast.success('Project deleted')
       router.push(`/dashboard/${params.orgSlug}/projects`)
     },
-    onError: () => toast.error('Failed to delete project'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'delete', resource: 'project', role })),
   })
 
   const { data: project, isLoading: projLoading, isError: projError, refetch } = useQuery({

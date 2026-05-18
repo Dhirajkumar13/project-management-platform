@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { cn, formatRelativeTime, hasOrgRole } from '@/lib/utils'
 
@@ -129,7 +130,7 @@ export default function OrgSettingsPage() {
   const updateMutation = useMutation({
     mutationFn: (data: OrgFormData) => api.patch(`/organizations/${currentOrg!.id}`, data),
     onSuccess: (res) => { setCurrentOrg({ ...currentOrg!, name: res.data.data.name }); toast.success('Organization updated!') },
-    onError: () => toast.error('Failed to update organization'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'update', resource: 'organization', role: currentOrg?.role })),
   })
 
   const deleteMutation = useMutation({
@@ -140,7 +141,7 @@ export default function OrgSettingsPage() {
       toast.success('Organization deleted')
       router.push('/dashboard')
     },
-    onError: () => toast.error('Failed to delete organization'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'delete', resource: 'organization', role: currentOrg?.role })),
   })
 
   const { data: webhooks } = useQuery({
@@ -164,26 +165,26 @@ export default function OrgSettingsPage() {
       resetWebhook()
       toast.success('Webhook created!')
     },
-    onError: () => toast.error('Failed to create webhook'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'webhook', role: currentOrg?.role })),
   })
 
   const deleteWebhookMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/organizations/${currentOrg!.id}/webhooks/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['webhooks', currentOrg?.id] }); toast.success('Webhook deleted') },
-    onError: () => toast.error('Failed to delete webhook'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'delete', resource: 'webhook', role: currentOrg?.role })),
   })
 
   const toggleWebhookMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
       api.patch(`/organizations/${currentOrg!.id}/webhooks/${id}`, { active }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['webhooks', currentOrg?.id] }),
-    onError: () => toast.error('Failed to update webhook'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'update', resource: 'webhook', role: currentOrg?.role })),
   })
 
   const rotateSecretMutation = useMutation({
     mutationFn: (id: string) => api.post(`/organizations/${currentOrg!.id}/webhooks/${id}/rotate-secret`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['webhooks', currentOrg?.id] }); toast.success('Secret rotated') },
-    onError: () => toast.error('Failed to rotate secret'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'rotate', resource: 'webhook secret', role: currentOrg?.role })),
   })
 
   const toggleEvent = (event: string) => {

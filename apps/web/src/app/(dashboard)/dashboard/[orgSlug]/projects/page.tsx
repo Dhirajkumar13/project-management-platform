@@ -16,6 +16,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 import Link from 'next/link'
 
 const PROJECT_STATUS_STYLES: Record<string, string> = {
@@ -125,7 +126,7 @@ export default function ProjectsPage({ params }: { params: { orgSlug: string } }
       reset()
       toast.success('Project created!')
     },
-    onError: () => toast.error('Failed to create project'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'project', role: currentOrg?.role })),
   })
 
   return (

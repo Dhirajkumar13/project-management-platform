@@ -15,6 +15,7 @@ import {
 import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 
 interface SidebarProps {
   isOpen?: boolean
@@ -43,7 +44,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       router.push(`/dashboard/${org.slug}`)
       toast.success(`"${org.name}" created`)
     },
-    onError: () => toast.error('Failed to create organization'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'organization' })),
   })
 
   useEffect(() => {

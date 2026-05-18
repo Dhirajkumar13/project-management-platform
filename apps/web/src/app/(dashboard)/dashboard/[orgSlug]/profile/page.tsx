@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 import { Camera } from 'lucide-react'
 import { SelectDropdown } from '@/components/ui/SelectDropdown'
 
@@ -72,7 +73,7 @@ export default function ProfilePage() {
       setAuth(updatedUser, useAuthStore.getState().accessToken ?? '')
       toast.success('Profile updated!')
     },
-    onError: () => toast.error('Failed to update profile'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'update', resource: 'profile' })),
   })
 
   const passwordMutation = useMutation({
@@ -82,7 +83,12 @@ export default function ProfilePage() {
       resetPwd()
       toast.success('Password changed!')
     },
-    onError: () => toast.error('Current password is incorrect'),
+    onError: (error) => toast.error(getErrorMessage({
+      error,
+      action: 'change',
+      resource: 'password',
+      overrides: { 401: 'Current password is incorrect.', 400: 'Current password is incorrect.' },
+    })),
   })
 
   const togglePref = (key: keyof typeof DEFAULT_PREFS, channel: 'email' | 'in_app') => {
@@ -110,8 +116,8 @@ export default function ProfilePage() {
       setAuth(updatedUser, useAuthStore.getState().accessToken ?? '')
       setValue('avatarUrl', updatedUser.avatarUrl ?? '')
       toast.success('Avatar uploaded!')
-    } catch {
-      toast.error('Failed to upload avatar')
+    } catch (error) {
+      toast.error(getErrorMessage({ error, action: 'upload', resource: 'avatar' }))
     } finally {
       setAvatarUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''

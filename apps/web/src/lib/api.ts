@@ -51,6 +51,10 @@ api.interceptors.response.use(
         }
       }
     }
+    if (process.env.NODE_ENV !== 'production') {
+      const { method, url } = error.config ?? {}
+      console.error(`[API] ${method?.toUpperCase()} ${url} → ${error.response?.status}`, error.response?.data)
+    }
     return Promise.reject(error)
   }
 )

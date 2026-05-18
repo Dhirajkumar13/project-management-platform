@@ -14,6 +14,7 @@ import { Task, TaskComment, TaskActivity, ProjectMember, Label } from '@/types'
 import { cn, STATUS_LABELS, STATUS_COLORS, PRIORITY_COLORS, formatRelativeTime, formatDate, isOverdue } from '@/lib/utils'
 import { Trash2, Send, Plus, Clock, Pencil, Check, MessageSquare, History, ListChecks, X, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 import ReactMarkdown from 'react-markdown'
 import { useRouter } from 'next/navigation'
 
@@ -121,48 +122,48 @@ export default function TaskDetailPage({ params }: { params: { orgSlug: string; 
     mutationFn: (data: Partial<Task>) =>
       api.patch(`/organizations/${orgId}/projects/${params.projectId}/tasks/${params.taskId}`, data),
     onSuccess: () => { invalidate(); toast.success('Task updated') },
-    onError: () => toast.error('Failed to update task'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'update', resource: 'task', role: currentOrg?.role })),
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/organizations/${orgId}/projects/${params.projectId}/tasks/${params.taskId}`),
     onSuccess: () => { toast.success('Task deleted'); router.back() },
-    onError: () => toast.error('Failed to delete task'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'delete', resource: 'task', role: currentOrg?.role })),
   })
 
   const commentMutation = useMutation({
     mutationFn: (content: string) =>
       api.post(`/organizations/${orgId}/projects/${params.projectId}/tasks/${params.taskId}/comments`, { content }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['comments', params.taskId] }); setComment('') },
-    onError: () => toast.error('Failed to add comment'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'add', resource: 'comment', role: currentOrg?.role })),
   })
 
   const addAssigneeMutation = useMutation({
     mutationFn: (userId: string) =>
       api.post(`/organizations/${orgId}/projects/${params.projectId}/tasks/${params.taskId}/assignees`, { userId }),
     onSuccess: invalidate,
-    onError: () => toast.error('Failed to add assignee'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'add', resource: 'assignee', role: currentOrg?.role })),
   })
 
   const removeAssigneeMutation = useMutation({
     mutationFn: (userId: string) =>
       api.delete(`/organizations/${orgId}/projects/${params.projectId}/tasks/${params.taskId}/assignees/${userId}`),
     onSuccess: invalidate,
-    onError: () => toast.error('Failed to remove assignee'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'remove', resource: 'assignee', role: currentOrg?.role })),
   })
 
   const addLabelMutation = useMutation({
     mutationFn: (labelId: string) =>
       api.post(`/organizations/${orgId}/projects/${params.projectId}/tasks/${params.taskId}/labels`, { labelId }),
     onSuccess: invalidate,
-    onError: () => toast.error('Failed to add label'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'add', resource: 'label', role: currentOrg?.role })),
   })
 
   const removeLabelMutation = useMutation({
     mutationFn: (labelId: string) =>
       api.delete(`/organizations/${orgId}/projects/${params.projectId}/tasks/${params.taskId}/labels/${labelId}`),
     onSuccess: invalidate,
-    onError: () => toast.error('Failed to remove label'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'remove', resource: 'label', role: currentOrg?.role })),
   })
 
   const subtaskToggle = useMutation({
@@ -175,7 +176,7 @@ export default function TaskDetailPage({ params }: { params: { orgSlug: string; 
     mutationFn: (t: string) =>
       api.post(`/organizations/${orgId}/projects/${params.projectId}/tasks/${params.taskId}/subtasks`, { title: t }),
     onSuccess: () => { refetchSubtasks(); setNewSubtask('') },
-    onError: () => toast.error('Failed to add subtask'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'subtask', role: currentOrg?.role })),
   })
 
   const handleTitleSave = () => {

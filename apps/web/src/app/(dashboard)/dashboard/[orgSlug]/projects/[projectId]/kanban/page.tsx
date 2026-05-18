@@ -23,6 +23,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/errors'
 import { TaskDetailModal } from '@/components/modals/TaskDetailModal'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { SelectDropdown } from '@/components/ui/SelectDropdown'
@@ -226,8 +227,8 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
     mutationFn: ({ taskId, status, position }: { taskId: string; status: TaskStatus; position: number }) =>
       api.patch(`/organizations/${orgId}/projects/${projectId}/tasks/${taskId}/move`, { status, position }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kanban', projectId] }),
-    onError: () => {
-      toast.error('Failed to move task')
+    onError: (error) => {
+      toast.error(getErrorMessage({ error, action: 'move', resource: 'task', role: currentOrg?.role }))
       qc.invalidateQueries({ queryKey: ['kanban', projectId] })
     },
   })
@@ -247,7 +248,7 @@ export default function KanbanPage({ params }: { params: { orgSlug: string; proj
       reset()
       toast.success('Task created!')
     },
-    onError: () => toast.error('Failed to create task'),
+    onError: (error) => toast.error(getErrorMessage({ error, action: 'create', resource: 'task', role: currentOrg?.role })),
   })
 
   const handleDragStart = ({ active }: DragStartEvent) => {
