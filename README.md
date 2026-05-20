@@ -20,6 +20,18 @@ A production-grade, multi-tenant SaaS project management platform — built with
 
 ---
 
+## Screenshots
+
+| Dashboard | Projects |
+|-----------|----------|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Projects](docs/screenshots/projects.png) |
+
+| Kanban Board | Project Detail |
+|--------------|----------------|
+| ![Kanban](docs/screenshots/kanban.png) | ![Project Detail](docs/screenshots/project-detail.png) |
+
+---
+
 ## Features
 
 ### Core
