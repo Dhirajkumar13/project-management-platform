@@ -30,6 +30,12 @@ A production-grade, multi-tenant SaaS project management platform — built with
 |--------------|----------------|
 | ![Kanban](docs/screenshots/kanban.png) | ![Project Detail](docs/screenshots/project-detail.png) |
 
+**Dark Mode**
+
+| Dashboard (Dark) | Project Detail (Dark) |
+|------------------|-----------------------|
+| ![Dashboard Dark](docs/screenshots/dashboard-dark.png) | ![Project Detail Dark](docs/screenshots/project-detail-dark.png) |
+
 ---
 
 ## Features
