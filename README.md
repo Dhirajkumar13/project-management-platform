@@ -199,7 +199,7 @@ All user-facing entities use **soft deletes** (`deletedAt`). `prisma.*.delete()`
 
 ## API Reference
 
-Full interactive docs at **http://localhost:3001/api/docs**
+Full interactive docs at **https://projectflow-api-wijm.onrender.com/api/docs** (or `http://localhost:3001/api/docs` locally)
 
 ### Auth
 | Method | Path | Description |
