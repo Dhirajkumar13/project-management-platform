@@ -30,6 +30,10 @@ A production-grade, multi-tenant SaaS project management platform — built with
 
 ---
 
+![Login](docs/screenshots/login.png)
+
+---
+
 ## Live Deployment
 
 | Service | Platform | URL |
